@@ -18,6 +18,12 @@ export const ApprovalStatus = IDL.Variant({
   'approved' : IDL.Null,
   'rejected' : IDL.Null,
 });
+export const UserNameInfo = IDL.Record({
+  'status' : ApprovalStatus,
+  'principal' : IDL.Principal,
+  'name' : IDL.Text,
+  'fourCharId' : IDL.Text,
+});
 export const UserApprovalInfo = IDL.Record({
   'status' : ApprovalStatus,
   'principal' : IDL.Principal,
@@ -26,7 +32,15 @@ export const UserApprovalInfo = IDL.Record({
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'addContent' : IDL.Func([IDL.Text, IDL.Text], [], []),
+  'addContent2' : IDL.Func([IDL.Text, IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'backendReset' : IDL.Func([], [], []),
+  'getAccessRequest' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Record({ 'name' : IDL.Text, 'fourCharId' : IDL.Text })],
+      [],
+    ),
+  'getAllUsersWithFullName' : IDL.Func([], [IDL.Vec(UserNameInfo)], ['query']),
   'getCallerUserProfile' : IDL.Func(
       [],
       [IDL.Opt(IDL.Record({ 'name' : IDL.Text }))],
@@ -34,11 +48,14 @@ export const idlService = IDL.Service({
     ),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getContent' : IDL.Func([IDL.Text], [IDL.Text], ['query']),
+  'getContent2' : IDL.Func([IDL.Text], [IDL.Text], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(IDL.Record({ 'name' : IDL.Text }))],
       ['query'],
     ),
+  'getUserRole' : IDL.Func([IDL.Principal], [UserRole], ['query']),
+  'greet' : IDL.Func([IDL.Text], [IDL.Text], []),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
   'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
@@ -69,6 +86,12 @@ export const idlFactory = ({ IDL }) => {
     'approved' : IDL.Null,
     'rejected' : IDL.Null,
   });
+  const UserNameInfo = IDL.Record({
+    'status' : ApprovalStatus,
+    'principal' : IDL.Principal,
+    'name' : IDL.Text,
+    'fourCharId' : IDL.Text,
+  });
   const UserApprovalInfo = IDL.Record({
     'status' : ApprovalStatus,
     'principal' : IDL.Principal,
@@ -77,7 +100,19 @@ export const idlFactory = ({ IDL }) => {
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'addContent' : IDL.Func([IDL.Text, IDL.Text], [], []),
+    'addContent2' : IDL.Func([IDL.Text, IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'backendReset' : IDL.Func([], [], []),
+    'getAccessRequest' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Record({ 'name' : IDL.Text, 'fourCharId' : IDL.Text })],
+        [],
+      ),
+    'getAllUsersWithFullName' : IDL.Func(
+        [],
+        [IDL.Vec(UserNameInfo)],
+        ['query'],
+      ),
     'getCallerUserProfile' : IDL.Func(
         [],
         [IDL.Opt(IDL.Record({ 'name' : IDL.Text }))],
@@ -85,11 +120,14 @@ export const idlFactory = ({ IDL }) => {
       ),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getContent' : IDL.Func([IDL.Text], [IDL.Text], ['query']),
+    'getContent2' : IDL.Func([IDL.Text], [IDL.Text], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(IDL.Record({ 'name' : IDL.Text }))],
         ['query'],
       ),
+    'getUserRole' : IDL.Func([IDL.Principal], [UserRole], ['query']),
+    'greet' : IDL.Func([IDL.Text], [IDL.Text], []),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
     'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),

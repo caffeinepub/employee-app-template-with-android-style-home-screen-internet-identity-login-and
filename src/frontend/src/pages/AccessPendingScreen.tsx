@@ -1,9 +1,17 @@
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { useRequestApprovalWithName } from '../hooks/useQueries';
-import { Clock, LogOut, AlertCircle } from 'lucide-react';
+import { Clock, LogOut, AlertCircle, RefreshCw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
-import { getPendingRequest, savePendingRequest, clearPendingRequest, type PendingRequest } from '../utils/pendingAccessRequest';
+
+// Client-side pending request storage
+interface PendingRequest {
+  name: string;
+  principal: string;
+  timestamp: number;
+}
+
+const STORAGE_KEY = 'pending_access_request';
 
 export default function AccessPendingScreen() {
   const { clear, identity } = useInternetIdentity();
@@ -19,17 +27,29 @@ export default function AccessPendingScreen() {
     if (!identity) return;
     
     const principal = identity.getPrincipal().toString();
-    const stored = getPendingRequest(principal);
+    const stored = localStorage.getItem(STORAGE_KEY);
     
     if (stored) {
-      setPendingRequest(stored);
-      setName(stored.name);
+      try {
+        const parsed: PendingRequest = JSON.parse(stored);
+        // Only restore if it's for the current principal
+        if (parsed.principal === principal) {
+          setPendingRequest(parsed);
+          setName(parsed.name);
+        } else {
+          // Clear stale data for different principal
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      } catch (e) {
+        console.error('Failed to parse stored pending request:', e);
+        localStorage.removeItem(STORAGE_KEY);
+      }
     }
   }, [identity]);
 
   const handleLogout = async () => {
     // Clear pending request data on logout
-    clearPendingRequest();
+    localStorage.removeItem(STORAGE_KEY);
     await clear();
     queryClient.clear();
   };
@@ -50,19 +70,18 @@ export default function AccessPendingScreen() {
 
     try {
       // Submit approval request to backend with name
-      const response = await requestApprovalWithName.mutateAsync(name.trim());
+      await requestApprovalWithName.mutateAsync(name.trim());
       
-      // Use backend-returned data
+      // Use authenticated principal
       const principal = identity.getPrincipal().toString();
       const request: PendingRequest = {
-        name: response.name,
-        fourCharId: response.fourCharId,
+        name: name.trim(),
         principal,
         timestamp: Date.now(),
       };
       
       // Store in localStorage for persistence
-      savePendingRequest(request);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(request));
       setPendingRequest(request);
       
     } catch (err: any) {
@@ -89,6 +108,11 @@ export default function AccessPendingScreen() {
       
       setError(errorMessage);
     }
+  };
+
+  const handleResubmitRequest = async () => {
+    // Re-submit the request with the current name
+    await handleRequestApproval();
   };
 
   const isSubmitting = requestApprovalWithName.isPending;
@@ -177,30 +201,58 @@ export default function AccessPendingScreen() {
               Your request is awaiting approval from an administrator.
             </p>
             
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 mb-8 text-left">
+            {error && (
+              <div className="mb-6 p-4 bg-red-500/90 backdrop-blur-sm rounded-xl flex items-start gap-3 text-left">
+                <AlertCircle className="w-5 h-5 text-white flex-shrink-0 mt-0.5" />
+                <p className="text-white text-sm">{error}</p>
+              </div>
+            )}
+            
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 mb-6 text-left">
               <div className="space-y-3">
                 <div>
                   <p className="text-white/70 text-sm mb-1">Your Name</p>
-                  <p className="text-white font-semibold text-lg">{pendingRequest.name}</p>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      setError(null);
+                    }}
+                    className="w-full px-4 py-2 rounded-lg bg-white/20 backdrop-blur-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    disabled={isSubmitting}
+                  />
                 </div>
                 <div>
-                  <p className="text-white/70 text-sm mb-1">Your ID</p>
-                  <p className="text-white font-mono font-bold text-2xl tracking-wider">{pendingRequest.fourCharId}</p>
+                  <p className="text-white/70 text-sm mb-1">Your Principal</p>
+                  <p className="text-white font-mono text-sm break-all">{pendingRequest.principal}</p>
                 </div>
               </div>
             </div>
 
             <p className="text-white/80 text-sm mb-6">
-              Please share your ID with an administrator to expedite approval.
+              Please share your principal with an administrator to expedite approval.
             </p>
             
-            <button
-              onClick={handleLogout}
-              className="w-full px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-full backdrop-blur-sm transition-all duration-200 flex items-center justify-center gap-2"
-            >
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </button>
+            <div className="space-y-3">
+              <button
+                onClick={handleResubmitRequest}
+                disabled={isSubmitting}
+                className="w-full px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-full shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${isSubmitting ? 'animate-spin' : ''}`} />
+                {isSubmitting ? 'Re-submitting...' : 'Re-submit Request'}
+              </button>
+              
+              <button
+                onClick={handleLogout}
+                disabled={isSubmitting}
+                className="w-full px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-full backdrop-blur-sm transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+            </div>
           </>
         )}
       </div>

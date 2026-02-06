@@ -1,144 +1,98 @@
+import UserName "user-name";
+import Principal "mo:core/Principal";
+import Map "mo:core/Map";
+import Text "mo:core/Text";
+import Iter "mo:core/Iter";
+import Nat "mo:core/Nat";
 import AccessControl "authorization/access-control";
 import UserApproval "user-approval/approval";
 import MixinAuthorization "authorization/MixinAuthorization";
-import Map "mo:core/Map";
-import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
-import Nat "mo:core/Nat";
-import Text "mo:core/Text";
-import Iter "mo:core/Iter";
-import Migration "migration";
 
-// Specify the data migration function in with-clause
-(with migration = Migration.run)
+
+
 actor {
-  // Persistent user data.
-  let userProfiles = Map.empty<Principal, { name : Text }>();
-
-  // Persistent notification/content data.
-  let notifications = Map.empty<Text, Text>();
-
-  // Persistent access request data.
-  let accessRequests = Map.empty<Principal, { name : Text; fourCharId : Text }>();
-
-  // Persistent counter for generating identifiers (survives upgrades)
   var requestCounter = 0;
+  let userProfiles = Map.empty<Principal, { name : Text }>();
+  let accessRequests = Map.empty<Principal, { name : Text; fourCharId : Text }>();
+  let notifications = Map.empty<Text, Text>();
+  let notifications2 = Map.empty<Text, Text>();
 
-  // Persistent access control state and MixinAuthorization integration.
-  let accessControlState = AccessControl.initState();
+  // AccessControl and UserApproval are re-initialized from migration
+  var accessControlState = AccessControl.initState();
+  var approvalState = UserApproval.initState(accessControlState);
+
   include MixinAuthorization(accessControlState);
 
-  // Initialize user approval component with persistent access control state.
-  let approvalState = UserApproval.initState(accessControlState);
-
-  public query ({ caller }) func isCallerApproved() : async Bool {
-    AccessControl.hasPermission(accessControlState, caller, #admin) or UserApproval.isApproved(approvalState, caller);
+  public type UserNameInfo = {
+    principal : Principal;
+    name : Text;
+    fourCharId : Text;
+    status : UserApproval.ApprovalStatus;
   };
 
-  // Completes reset and generates new pending request for previously deleted users
+  func isApprovedOrAdmin(caller : Principal) : Bool {
+    AccessControl.isAdmin(accessControlState, caller) or UserApproval.isApproved(approvalState, caller);
+  };
+
+  public query ({ caller }) func isCallerApproved() : async Bool {
+    isApprovedOrAdmin(caller);
+  };
+
+  public query ({ caller }) func getUserRole(user : Principal) : async AccessControl.UserRole {
+    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can view other user roles");
+    };
+    AccessControl.getUserRole(accessControlState, user);
+  };
+
   public shared ({ caller }) func requestApprovalWithName(name : Text) : async { name : Text; fourCharId : Text } {
-    // Admins cannot request approval for themselves
-    if (AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Admins do not need approval");
+    if (isApprovedOrAdmin(caller)) {
+      Runtime.trap("You're already approved");
     };
 
-    // STRICT IDEMPOTENT CLEANUP: Remove ALL backend-stored records for caller
-    // 1. Remove access request metadata
-    accessRequests.remove(caller);
-    
-    // 2. Remove user profile
-    userProfiles.remove(caller);
-    
-    // 3. Remove pending approval state (if exists)
-    UserApproval.setApproval(approvalState, caller, #pending);
-    
-    // 4. Clear approved state by setting to rejected, then back to pending
-    // This ensures any previous approval is completely removed
-    UserApproval.setApproval(approvalState, caller, #rejected);
-    
-    // 5. Remove any role assignments (reset to guest)
-    // Note: We cannot directly remove roles, but we can ensure the user
-    // is set to guest role which is the default unauthenticated state
-    AccessControl.assignRole(accessControlState, caller, caller, #guest);
-
-    // Generate new identifier
     let fourCharId = generateFourCharId(requestCounter);
+    let request = { name; fourCharId };
 
-    let request = {
-      name;
-      fourCharId;
-    };
-
-    // Store new access request
     accessRequests.add(caller, request);
     requestCounter += 1;
-
-    // Create new pending approval request (clean state)
     UserApproval.requestApproval(approvalState, caller);
-
     request;
   };
 
-  // Legacy endpoint maintained for compatibility.
-  public shared ({ caller }) func requestApproval() : async () {
-    Runtime.trap("Please use 'requestApprovalWithName' to provide your name and receive your identifier.");
-  };
-
-  // AUTHORIZATION: Prevent modification of name after approval
-  public shared ({ caller }) func saveCallerUserProfile(profile : { name : Text }) : async () {
-    if (not (UserApproval.isApproved(approvalState, caller) or AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Only approved users can save profile");
+  public shared ({ caller }) func getAccessRequest(user : Principal) : async { name : Text; fourCharId : Text } {
+    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own access request or admin required");
     };
 
-    // Prevent changing the name - it must remain immutable post approval
-    switch (userProfiles.get(caller)) {
-      case (?_) {
-        // Profile already exists - name cannot be changed
-        Runtime.trap("Unauthorized: Profile name cannot be changed after approval");
-      };
+    let recordNumberPadding = "NON-IMPL";
+    switch (accessRequests.get(user)) {
       case (null) {
-        // This should not happen in normal flow, but allow profile creation
-        // only if there's no existing profile
-        userProfiles.add(caller, profile);
+        Runtime.trap("No access request found for this user. If you are an admin, this is expected behavior for already-approved users and you should handle it gracefully with a fallback.");
+      };
+      case (?request) {
+        { request with fourCharId = recordNumberPadding # request.fourCharId };
       };
     };
   };
 
-  // Returns the complete approval list (deprecated/compat).
-  public query ({ caller }) func listApprovals() : async [UserApproval.UserApprovalInfo] {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Only admins can access the approval list");
-    };
-    UserApproval.listApprovals(approvalState);
+  public shared ({ caller }) func requestApproval() : async () {
+    Runtime.trap("Deprecated: Use requestApprovalWithName instead");
   };
 
   public shared ({ caller }) func setApproval(user : Principal, status : UserApproval.ApprovalStatus) : async () {
-    // Only admins can approve/reject.
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Only admins can set approval status");
-    };
+    requireAdmin(caller);
 
-    // When approving, create the user profile with the name from access request
     if (status == #approved) {
-      switch (accessRequests.get(user)) {
-        case (?request) {
-          // Create the permanent user profile with the name from the access request
-          userProfiles.add(user, { name = request.name });
-          // Remove access request after creating profile
-          accessRequests.remove(user);
-        };
-        case (null) {
-          // No access request found - cannot approve without a name
-          Runtime.trap("Cannot approve: No access request found for user");
-        };
-      };
-    } else if (status == #rejected) {
-      // When rejecting, clean up the access request
       accessRequests.remove(user);
     };
 
-    // Persist approval status
     UserApproval.setApproval(approvalState, user, status);
+  };
+
+  public query ({ caller }) func listApprovals() : async [UserApproval.UserApprovalInfo] {
+    requireAdmin(caller);
+    UserApproval.listApprovals(approvalState);
   };
 
   public query ({ caller }) func getCallerUserProfile() : async ?{ name : Text } {
@@ -152,16 +106,21 @@ actor {
     userProfiles.get(user);
   };
 
-  public shared ({ caller }) func addContent(id : Text, content : Text) : async () {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Only admins can add content");
+  public shared ({ caller }) func saveCallerUserProfile(profile : { name : Text }) : async () {
+    if (not isApprovedOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only approved users can save profile");
     };
+    userProfiles.add(caller, profile);
+  };
+
+  public shared ({ caller }) func addContent(id : Text, content : Text) : async () {
+    requireAdmin(caller);
     notifications.add(id, content);
   };
 
   public query ({ caller }) func getContent(id : Text) : async Text {
-    if (not (UserApproval.isApproved(approvalState, caller) or AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Only approved users can retrieve content");
+    if (not isApprovedOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only approved users can retrieve content");
     };
     switch (notifications.get(id)) {
       case (null) { Runtime.trap("Content not found") };
@@ -169,27 +128,109 @@ actor {
     };
   };
 
-  // Helper function to generate 4-character identifier from counter.
+  public shared ({ caller }) func addContent2(id : Text, content : Text) : async () {
+    requireAdmin(caller);
+    notifications2.add(id, content);
+  };
+
+  public query ({ caller }) func getContent2(id : Text) : async Text {
+    if (not isApprovedOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only approved users can retrieve content");
+    };
+    switch (notifications2.get(id)) {
+      case (null) { Runtime.trap("Content not found") };
+      case (?content) { content };
+    };
+  };
+
+  // Reset all application data while preserving admin identities
+  public shared ({ caller }) func backendReset() : async () {
+    requireAdmin(caller);
+    
+    // Clear user profiles
+    for ((key, _) in userProfiles.entries()) {
+      userProfiles.remove(key);
+    };
+    
+    // Clear content stores
+    for ((key, _) in notifications.entries()) {
+      notifications.remove(key);
+    };
+    for ((key, _) in notifications2.entries()) {
+      notifications2.remove(key);
+    };
+    
+    // Clear access requests
+    for ((key, _) in accessRequests.entries()) {
+      accessRequests.remove(key);
+    };
+    
+    // Reset counter
+    requestCounter := 0;
+    
+    // Reset approval state while preserving accessControlState (which contains admin roles)
+    approvalState := UserApproval.initState(accessControlState);
+  };
+
+  func requireAdmin(caller : Principal) {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
+  };
+
   func generateFourCharId(counter : Nat) : Text {
-    let maxId = 26 ** 4; // 26^4 possible combinations
+    let maxId = 26 ** 4;
     let adjustedCounter = counter % maxId;
     let chars = "abcdefghijklmnopqrstuvwxyz";
     var id = adjustedCounter;
-    var result = "";
-
+    var result : [Char] = [];
     var i = 0;
     while (i < 4) {
       let charIndex = id % 26;
       let charIndexNat = if (charIndex > 25) { 25 : Nat } else { charIndex };
       let charIter = chars.chars().drop(charIndexNat);
       switch (charIter.next()) {
-        case (?c) { result := Text.fromChar(c) # result };
+        case (?c) { result := result.concat([c]) };
         case (null) {};
       };
       id /= 26;
       i += 1;
     };
+    Text.fromIter(result.reverse().values());
+  };
 
-    result;
+  // New endpoint for admin to see all users with name information
+  public query ({ caller }) func getAllUsersWithFullName() : async [UserNameInfo] {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
+
+    let finalizedUsersIter = userProfiles.entries().map(
+      func((principal, { name })) {
+        {
+          principal;
+          name;
+          fourCharId = "finalized";
+          status = #approved : UserApproval.ApprovalStatus;
+        };
+      }
+    );
+
+    let accessRequestsIter = accessRequests.entries().map(
+      func((principal, { name; fourCharId })) {
+        {
+          principal;
+          name;
+          fourCharId;
+          status = #pending : UserApproval.ApprovalStatus;
+        };
+      }
+    );
+
+    finalizedUsersIter.concat(accessRequestsIter).toArray();
+  };
+
+  public func greet(name : Text) : async Text {
+    "Hello, " # name # "!";
   };
 };

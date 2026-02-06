@@ -7,6 +7,12 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
+export interface UserNameInfo {
+    status: ApprovalStatus;
+    principal: Principal;
+    name: string;
+    fourCharId: string;
+}
 export interface UserApprovalInfo {
     status: ApprovalStatus;
     principal: Principal;
@@ -23,15 +29,25 @@ export enum UserRole {
 }
 export interface backendInterface {
     addContent(id: string, content: string): Promise<void>;
+    addContent2(id: string, content: string): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    backendReset(): Promise<void>;
+    getAccessRequest(user: Principal): Promise<{
+        name: string;
+        fourCharId: string;
+    }>;
+    getAllUsersWithFullName(): Promise<Array<UserNameInfo>>;
     getCallerUserProfile(): Promise<{
         name: string;
     } | null>;
     getCallerUserRole(): Promise<UserRole>;
     getContent(id: string): Promise<string>;
+    getContent2(id: string): Promise<string>;
     getUserProfile(user: Principal): Promise<{
         name: string;
     } | null>;
+    getUserRole(user: Principal): Promise<UserRole>;
+    greet(name: string): Promise<string>;
     isCallerAdmin(): Promise<boolean>;
     isCallerApproved(): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;

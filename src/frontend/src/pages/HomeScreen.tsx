@@ -1,9 +1,10 @@
 import { useNavigate } from '@tanstack/react-router';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useGetCallerUserProfile, useGetAnnouncement } from '../hooks/useQueries';
+import { useGetCallerUserProfile, useSaveCallerUserProfile, useGetAnnouncement } from '../hooks/useQueries';
 import { useAccessStatus } from '../hooks/useAccessStatus';
 import { LogOut, Settings, Bell } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 
 interface ModuleIcon {
   id: string;
@@ -38,8 +39,18 @@ export default function HomeScreen() {
   const { clear } = useInternetIdentity();
   const queryClient = useQueryClient();
   const { isAdmin } = useAccessStatus();
-  const { data: userProfile } = useGetCallerUserProfile();
+  const { data: userProfile, isLoading: profileLoading, isFetched } = useGetCallerUserProfile();
+  const saveProfile = useSaveCallerUserProfile();
   const { data: announcement } = useGetAnnouncement();
+  
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [name, setName] = useState('');
+
+  useEffect(() => {
+    if (isFetched && userProfile === null && !profileLoading) {
+      setShowProfileSetup(true);
+    }
+  }, [isFetched, userProfile, profileLoading]);
 
   const handleLogout = async () => {
     await clear();
@@ -53,6 +64,54 @@ export default function HomeScreen() {
   const handleAdminClick = () => {
     navigate({ to: '/admin' });
   };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (name.trim()) {
+      await saveProfile.mutateAsync({ name: name.trim() });
+      setShowProfileSetup(false);
+    }
+  };
+
+  // Profile setup modal
+  if (showProfileSetup) {
+    return (
+      <div 
+        className="min-h-screen flex items-center justify-center relative overflow-hidden"
+        style={{
+          backgroundImage: 'url(/assets/generated/employee-wallpaper.dim_1920x1080.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+        
+        <div className="relative z-10 bg-white/95 backdrop-blur-md rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl">
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Welcome!</h2>
+          <p className="text-slate-600 mb-6">Please enter your name to get started</p>
+          
+          <form onSubmit={handleSaveProfile}>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your name"
+              className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-emerald-500 focus:outline-none mb-4 text-slate-900"
+              autoFocus
+            />
+            
+            <button
+              type="submit"
+              disabled={!name.trim() || saveProfile.isPending}
+              className="w-full px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-xl shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saveProfile.isPending ? 'Saving...' : 'Continue'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 

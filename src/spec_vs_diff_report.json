@@ -1,39 +1,14 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T14:09:11.080Z",
-  "summary": "REQ-27 is partially addressed by adding a cleanup routine inside `requestApprovalWithName(name)` that removes `accessRequests` and `userProfiles` entries for the caller before creating a new pending request. However, the diff does not clearly implement a strict cleanup that *removes* all caller records across approval state and admin/role state; instead it sets various states (pending/rejected, guest) in a way that may not satisfy the “fully clean deleted principals” requirement as written. The diff also adds unrelated functionality (migration scaffolding and profile immutability enforcement).",
-  "missing_requirements": [
-    {
-      "id": "REQ-27",
-      "requirement": "Perform a strict, idempotent cleanup of all backend-stored records for the caller principal (pending approval state, approved state, admin/role state, stored profile/name, and any stored access-request/4-char-id metadata) before creating a new pending approval request.",
-      "reason": "The diff shows deletion of `accessRequests` and `userProfiles`, but does not show a true removal/reset of approval records and admin/role records; it instead calls `UserApproval.setApproval(...)` and `AccessControl.assignRole(..., #guest)` which appear to overwrite state rather than delete all caller records. The requirement explicitly calls for cleaning/removing all backend-stored records for the principal so leftover state cannot block recreation, but the diff provides no evidence of removing caller entries from the approval and access-control/admin/role storage structures.",
-      "evidence": [
-        "backend/main.mo"
-      ]
-    }
-  ],
-  "hallucinated_features": [
-    {
-      "description": "Added migration scaffolding (`backend/migration.mo`) and configured the actor with a `with migration = Migration.run` clause.",
-      "reason": "BuildRequest constraints require keeping logic in `backend/main.mo` and do not request any migration changes; adding a new module and migration wiring is not requested by REQ-27.",
-      "evidence": [
-        "backend/migration.mo",
-        "backend/main.mo"
-      ]
-    },
-    {
-      "description": "Preventing modification of user profile name after approval (new authorization/trap behavior in `saveCallerUserProfile`).",
-      "reason": "REQ-27 only concerns strict cleanup in `requestApprovalWithName(name)` before recreating pending access requests; immutability of profile/name after approval is not requested.",
-      "evidence": [
-        "backend/main.mo"
-      ]
-    }
-  ],
-  "confidence": 0.62,
+  "generatedAt": "2026-02-06T21:54:07.113Z",
+  "summary": "The diff shows changes in `frontend/src/pages/AdminDashboard.tsx` adding a responsive, stacked-on-mobile layout for `ApprovedUserRow` using Tailwind classes (`flex flex-col sm:flex-row ...`), which aligns with REQ-1’s mobile-optimized alignment/spacing goal. Due to truncation, it’s not fully verifiable whether only the Approved Users section was changed and whether button labels/behavior remained identical, but no explicit behavior changes are visible in the provided excerpt.",
+  "missing_requirements": [],
+  "hallucinated_features": [],
+  "confidence": 0.6,
   "changed_files": [
-    "backend/main.mo",
-    "backend/migration.mo",
+    "frontend-file-summaries.txt",
+    "frontend/src/pages/AdminDashboard.tsx",
     "project_state.json"
   ]
 }

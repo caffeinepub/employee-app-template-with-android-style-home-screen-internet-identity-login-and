@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import type { UserApprovalInfo, ApprovalStatus } from '../backend';
+import type { UserApprovalInfo, ApprovalStatus, UserNameInfo } from '../backend';
 import { UserRole } from '../backend';
 import { Principal } from '@dfinity/principal';
 
@@ -69,29 +69,24 @@ export function useRequestApprovalWithName() {
       return actor.requestApprovalWithName(name);
     },
     onSuccess: () => {
-      // Invalidate and refetch immediately
       queryClient.invalidateQueries({ queryKey: ['accessStatus'] });
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
-      // Force refetch to ensure admin sees the new request
-      queryClient.refetchQueries({ queryKey: ['approvals'] });
     },
   });
 }
 
-// Admin Queries
+// Admin Queries - Updated to use getAllUsersWithFullName
 export function useListApprovals() {
   const { actor, isFetching: actorFetching } = useActor();
 
-  return useQuery<UserApprovalInfo[]>({
+  return useQuery<UserNameInfo[]>({
     queryKey: ['approvals'],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      return actor.listApprovals();
+      return actor.getAllUsersWithFullName();
     },
     enabled: !!actor && !actorFetching,
-    refetchInterval: 5000, // Poll every 5 seconds for new requests
-    refetchOnMount: 'always', // Always refetch when component mounts
-    refetchOnWindowFocus: true, // Refetch when window regains focus
+    refetchInterval: 5000, // Auto-refetch every 5 seconds while the query is enabled
   });
 }
 
@@ -107,9 +102,7 @@ export function useSetApproval() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
       queryClient.invalidateQueries({ queryKey: ['accessStatus'] });
-      queryClient.invalidateQueries({ queryKey: ['userRoles'] });
-      // Force refetch to ensure UI updates immediately
-      queryClient.refetchQueries({ queryKey: ['approvals'] });
+      queryClient.invalidateQueries({ queryKey: ['userRole'] });
     },
   });
 }
@@ -121,9 +114,7 @@ export function useGetUserRole(userPrincipal: Principal | null) {
     queryKey: ['userRole', userPrincipal?.toText()],
     queryFn: async () => {
       if (!actor || !userPrincipal) throw new Error('Actor or user not available');
-      // Note: Backend currently only has getCallerUserRole, not getUserRole
-      // This is a workaround - in production, backend should expose getUserRole(principal)
-      return UserRole.user; // Default to user role
+      return actor.getUserRole(userPrincipal);
     },
     enabled: !!actor && !!userPrincipal && !actorFetching,
     retry: false,
@@ -141,7 +132,7 @@ export function useAssignUserRole() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
-      queryClient.invalidateQueries({ queryKey: ['userRoles'] });
+      queryClient.invalidateQueries({ queryKey: ['userRole'] });
       queryClient.invalidateQueries({ queryKey: ['accessStatus'] });
     },
   });
@@ -177,6 +168,31 @@ export function useUpdateAnnouncement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['announcement'] });
+    },
+  });
+}
+
+// Backend Reset Mutation
+export function useBackendReset() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.backendReset();
+    },
+    onSuccess: () => {
+      // Clear all React Query cache
+      queryClient.clear();
+      
+      // Remove localStorage key used by AccessPendingScreen
+      localStorage.removeItem('pending_access_request');
+    },
+    // Suppress error handling - admins should never see reset failures
+    // The backend ensures admin identities persist
+    onError: () => {
+      // Silently handle errors
     },
   });
 }

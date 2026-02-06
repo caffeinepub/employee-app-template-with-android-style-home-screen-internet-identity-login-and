@@ -1,6 +1,26 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Frontend: No changes required for backend-only strict cleanup in requestApprovalWithName",
-  "requirements": []
+  "title": "Mobile-optimized responsive layout for Admin Dashboard Approved Users rows",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "summary": "Adjust only the Admin Dashboard “Approved Users” rows to prevent horizontal overflow on small screens by stacking content/actions responsively while keeping all button behavior unchanged.",
+      "acceptanceCriteria": [
+        "Only the \"Approved Users\" section UI is changed; \"Pending Approvals\", reset section, and other pages remain visually/functionally unchanged.",
+        "On small/mobile widths, each ApprovedUserRow no longer overflows horizontally and no buttons are clipped off-screen.",
+        "On small/mobile widths, the ApprovedUserRow layout is stacked (content area and actions arranged to fit narrow screens) with consistent spacing and alignment (no overlapping elements).",
+        "The action buttons in ApprovedUserRow (Make/Remove Admin and Remove) remain fully usable and trigger the same callbacks as before; no new confirmation flows or behavior changes are introduced.",
+        "On tablet/desktop widths, the ApprovedUserRow retains an appropriate horizontal layout similar to the current design (no regression).",
+        "Implementation is done by editing the ApprovedUserRow markup/classes in frontend/src/pages/AdminDashboard.tsx (responsive Tailwind classes preferred)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AdminDashboard.tsx",
+          "operation": "modify",
+          "description": "Update only the ApprovedUserRow JSX structure and Tailwind classes to be responsive: use a stacked layout on small widths (e.g., flex-col with gaps, actions below content) and a horizontal layout on sm+; ensure the text/content region uses min-w-0 and truncation/wrapping to avoid horizontal overflow; ensure the actions container wraps or stacks and buttons use responsive widths (e.g., w-full on mobile, w-auto on larger screens). Keep callbacks, button labels, and disabled logic exactly the same, and do not alter other sections (Pending Approvals, Reset, Announcement)."
+        }
+      ]
+    }
+  ]
 }

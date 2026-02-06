@@ -1,34 +1,34 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T14:09:11.083Z",
+  "generatedAt": "2026-02-06T21:54:07.116Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
     "total": 1,
-    "implemented": 0,
+    "implemented": 1,
     "items": [
       {
-        "id": "REQ-27",
-        "summary": "Update the Motoko backend `requestApprovalWithName(name)` flow to perform a strict, idempotent cleanup of **all** backend-stored records for the caller principal (pending approval state, approved state, admin/role state, stored profile/name, and any stored access-request/4-char-id metadata) **before** creating a new pending approval request and storing the new `{name, fourCharId}` request record.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
+        "id": "REQ-1",
+        "summary": "Update the Admin Dashboard \"Approved Users\" section rows to use a mobile-optimized layout that fixes button alignment/spacing on small screens without changing any button behavior (same actions, same labels, same enabled/disabled logic).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/AdminDashboard.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/AdminDashboard.tsx"
+        ]
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
+    "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/backend.d.ts",
-    "frontend/src/backend.ts",
-    "frontend/src/declarations/backend.did.d.ts",
-    "frontend/src/declarations/backend.did.js",
+    "frontend/src/pages/AdminDashboard.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

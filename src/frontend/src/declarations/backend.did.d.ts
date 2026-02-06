@@ -17,17 +17,33 @@ export interface UserApprovalInfo {
   'status' : ApprovalStatus,
   'principal' : Principal,
 }
+export interface UserNameInfo {
+  'status' : ApprovalStatus,
+  'principal' : Principal,
+  'name' : string,
+  'fourCharId' : string,
+}
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'addContent' : ActorMethod<[string, string], undefined>,
+  'addContent2' : ActorMethod<[string, string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'backendReset' : ActorMethod<[], undefined>,
+  'getAccessRequest' : ActorMethod<
+    [Principal],
+    { 'name' : string, 'fourCharId' : string }
+  >,
+  'getAllUsersWithFullName' : ActorMethod<[], Array<UserNameInfo>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [{ 'name' : string }]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getContent' : ActorMethod<[string], string>,
+  'getContent2' : ActorMethod<[string], string>,
   'getUserProfile' : ActorMethod<[Principal], [] | [{ 'name' : string }]>,
+  'getUserRole' : ActorMethod<[Principal], UserRole>,
+  'greet' : ActorMethod<[string], string>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isCallerApproved' : ActorMethod<[], boolean>,
   'listApprovals' : ActorMethod<[], Array<UserApprovalInfo>>,
