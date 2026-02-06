@@ -1,2 +1,3 @@
-# employee-app-template-with-android-style-home-screen-internet-identity-login-and
-Exported from Caffeine project: Employee app template with Android-style home screen, Internet Identity login, and admin-controlled access
+## 
+
+To run app build and run docker image: `docker build -t app . docker run -it --network host app`

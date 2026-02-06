@@ -1,0 +1,168 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Frontend fixes for approvals, access requests metadata display, admin role distinction, user removal, and reliable React Query refresh",
+  "requirements": [
+    {
+      "id": "REQ-8",
+      "summary": "Make Admin Dashboard Approve/Reject mutations pass valid Principal values and refresh UI lists without full reload.",
+      "acceptanceCriteria": [
+        "From the Admin Dashboard, clicking Approve moves the selected user from Pending Approvals to Approved Users after refresh (without requiring a full page reload).",
+        "From the Admin Dashboard, clicking Reject removes the selected user from Pending Approvals and they remain unable to access the app.",
+        "No console errors occur due to invalid Principal values being passed to backend methods.",
+        "After approving/rejecting, the approvals list query is invalidated/refetched and shows the updated state."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AdminDashboard.tsx",
+          "operation": "modify",
+          "description": "Fix Approve/Reject handlers to pass the actual Principal returned by listApprovals (instead of fabricating an object with toText), and ensure the UI updates based on React Query invalidation. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Tighten mutation typings so setApproval expects the backend Principal type and ensure onSuccess invalidates/refetches the approvals query. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-9",
+      "summary": "Update Access Pending flow to collect a user name before requesting approval, then show backend-returned pending metadata (name + short identifier) reliably across refreshes.",
+      "acceptanceCriteria": [
+        "The Access Pending screen includes a name input before submission and prevents submission when the name is empty.",
+        "On submit, the backend persists the user’s request metadata (at minimum: name and short identifier) associated with the caller principal.",
+        "After submitting, the pending UI shows the same name and short identifier returned from the backend (not locally fabricated).",
+        "Refreshing the page while still pending continues to show the same stored name and short identifier for that pending request."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AccessPendingScreen.tsx",
+          "operation": "modify",
+          "description": "Add a required name input (English UI text), block submission when empty, and update the flow to persist the name (via the existing profile save capability) before triggering requestApproval; after submit, render a pending-details section that reads name + short identifier from backend-derived data (not locally generated) when available. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add/adjust hooks needed by AccessPendingScreen to (1) fetch current caller profile, (2) save caller profile name, and (3) coordinate invalidation so the pending screen re-renders with backend-stored metadata after requestApproval. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Ensure the non-approved branch renders AccessPendingScreen in a way that allows it to query and display pending-request metadata consistently after login and after refetches, without requiring a full page reload. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-11",
+      "summary": "Show pending requester's name and 4-character identifier in the Admin Dashboard pending approvals list with clear fallbacks for legacy entries.",
+      "acceptanceCriteria": [
+        "Each pending approval row displays the user’s name and the 4-character identifier.",
+        "The UI does not require admins to interpret raw principal text to identify users.",
+        "If a legacy pending request has no stored name/identifier, the UI shows a clear fallback label (e.g., “Unknown name”) while still allowing approve/reject."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AdminDashboard.tsx",
+          "operation": "modify",
+          "description": "Update Pending Approvals rows to display requester name and the 4-character identifier (sourced from backend data when available). For legacy entries missing metadata, show a clear fallback label while keeping Approve/Reject functional. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add query support used by AdminDashboard to resolve per-user display metadata for pending approvals (e.g., via existing getUserProfile and any backend-exposed request identifier field), including caching to avoid excessive refetching. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/backend.d.ts",
+          "operation": "modify",
+          "description": "Update frontend type definitions to include any backend-exposed fields needed to render pending-request metadata (name + 4-character identifier) in the approvals list. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-12",
+      "summary": "Clearly distinguish Admin vs Approved User roles in the Admin Dashboard and wire role toggle UI to backend role assignment with reliable refresh.",
+      "acceptanceCriteria": [
+        "The Admin Dashboard approved users list shows each approved user’s current role (Admin vs Approved User) in the UI.",
+        "Toggling admin rights updates the backend and refreshes the UI so the role label changes accordingly.",
+        "Non-admin approved users cannot access admin-only backend APIs (admin list/role management/approval actions).",
+        "Admin designation is not inferred from approval status; it is displayed and managed as a separate role."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AdminDashboard.tsx",
+          "operation": "modify",
+          "description": "Update Approved Users list UI to display each user’s current role (Admin vs Approved User) and toggle admin rights based on the user’s actual current role (not a hardcoded default). Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add/adjust queries/mutations for role display + toggling in AdminDashboard, ensuring role-related query keys are invalidated after role changes. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/AdminGuard.tsx",
+          "operation": "modify",
+          "description": "Ensure admin-only UI remains guarded by isAdmin state and behaves correctly during refetches (no flashing of admin content to non-admins). Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-13",
+      "summary": "Add an admin-only “Remove user” action in the Admin Dashboard that triggers backend user removal and refreshes access/approval state in the UI.",
+      "acceptanceCriteria": [
+        "Admin Dashboard provides a “Remove user” action for each approved user.",
+        "Removing a user makes them fail the app access gate (they are treated as not approved).",
+        "If the removed user previously had admin rights, those rights are revoked as part of removal.",
+        "Any stored user metadata tied to access (e.g., request info / profile) is removed or reset such that the user must re-request approval to regain access.",
+        "After removal, the approved users list refreshes and no longer includes that user."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AdminDashboard.tsx",
+          "operation": "modify",
+          "description": "Add a “Remove user” action for each approved user, wired to a backend removal capability, and update the list state via React Query invalidation so the removed user disappears without full reload. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add a mutation hook for removing an approved user and ensure it invalidates approvals, roles-related queries, and access-status queries so UI gates and lists update promptly. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/backend.d.ts",
+          "operation": "modify",
+          "description": "Update frontend type definitions to include the backend function signature used for admin user removal (and any related response types) once available. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-14",
+      "summary": "Make React Query invalidation/refetch consistent across approval actions, role changes, and user removal so all relevant UI updates without full reload.",
+      "acceptanceCriteria": [
+        "After an admin approves a user, the approvals list updates and the newly approved user can enter the app on next access-status refresh (or after re-checking access status).",
+        "After an admin removes a user, that user is denied access (access-status query reflects the change).",
+        "React Query keys for approvals/access status/roles are invalidated appropriately after each mutation (approve/reject/role change/remove)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Standardize React Query keys and ensure each mutation (approve/reject/role change/remove) invalidates both the approvals list and any access-status/role-related queries used across the app. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useAccessStatus.ts",
+          "operation": "modify",
+          "description": "Ensure the access-status query keying and enabled conditions support reliable refetch after relevant invalidations (e.g., after approvals/role changes/removals) without requiring full page reload. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/AccessPendingScreen.tsx",
+          "operation": "modify",
+          "description": "After request approval submission (and after any subsequent invalidations), ensure the pending screen refetches and displays the up-to-date backend state/metadata without requiring a hard reload. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/AdminDashboard.tsx",
+          "operation": "modify",
+          "description": "Ensure the dashboard reflects mutation results immediately by relying on correct query invalidations (no manual full page reload), and avoid stale role/approval displays after mutations. Verify the component's usage instructions before implementing."
+        }
+      ]
+    }
+  ]
+}

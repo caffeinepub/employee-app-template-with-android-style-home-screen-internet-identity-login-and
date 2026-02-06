@@ -1,0 +1,132 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-06T11:59:13.330Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 7,
+    "implemented": 6,
+    "items": [
+      {
+        "id": "REQ-10",
+        "summary": "Generate a short identifier for each access request that is exactly 4 characters long, and make the identifier visible to both the requesting user (on their pending screen) and admins (in the pending approvals list).",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-11",
+        "summary": "Update the Admin Dashboard pending approvals list to display the requesting user’s name and 4-character identifier (instead of showing only a partial principal string).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/AdminDashboard.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/backend.d.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/AdminDashboard.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/backend.d.ts"
+        ]
+      },
+      {
+        "id": "REQ-12",
+        "summary": "Ensure there is a clear distinction between normal approved users and admins in both backend role logic and the Admin Dashboard UI; admins must be able to grant and revoke admin rights for approved users with the current role/status clearly shown.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/AdminDashboard.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/AdminGuard.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/AdminDashboard.tsx",
+          "frontend/src/hooks/useQueries.ts"
+        ]
+      },
+      {
+        "id": "REQ-13",
+        "summary": "Add an admin-only ability to remove an approved user such that removing the user fully deletes their access rights (including revoking admin rights if present) and prevents them from accessing the app until they request approval again.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/AdminDashboard.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/backend.d.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/AdminDashboard.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/backend.d.ts"
+        ]
+      },
+      {
+        "id": "REQ-14",
+        "summary": "Update frontend query invalidation/refetch behavior so that changes to approvals, roles, and user removal reliably update all relevant UI states (Admin Dashboard lists and the logged-in user’s access gating state) without a full reload.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/hooks/useAccessStatus.ts",
+          "frontend/src/pages/AccessPendingScreen.tsx",
+          "frontend/src/pages/AdminDashboard.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/hooks/useAccessStatus.ts",
+          "frontend/src/pages/AccessPendingScreen.tsx",
+          "frontend/src/pages/AdminDashboard.tsx"
+        ]
+      },
+      {
+        "id": "REQ-8",
+        "summary": "Fix the Admin Dashboard pending-approval Approve and Reject actions so that clicking the buttons actually updates the corresponding user’s approval status in the backend and the UI refreshes to reflect the change.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/AdminDashboard.tsx",
+          "frontend/src/hooks/useQueries.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/AdminDashboard.tsx",
+          "frontend/src/hooks/useQueries.ts"
+        ]
+      },
+      {
+        "id": "REQ-9",
+        "summary": "Update the access request flow so that when a logged-in but unapproved user clicks “Request Approval”, they must enter their name, and after submitting they see a pending state that displays both their entered name and a generated short identifier.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/AccessPendingScreen.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/App.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/AccessPendingScreen.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/App.tsx"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "backend/main.mo",
+    "build-request.json",
+    "build-template/README.md",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/src/App.tsx",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useAccessStatus.ts",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/AccessPendingScreen.tsx",
+    "frontend/src/pages/AdminDashboard.tsx",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

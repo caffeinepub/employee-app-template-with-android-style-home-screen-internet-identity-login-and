@@ -1,0 +1,92 @@
+{
+  "kind": "spec_vs_diff_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-06T11:59:13.327Z",
+  "summary": "The diff partially addresses admin approval actions and adds frontend query invalidation hooks, but it does not implement the required server-side name + 4-character request ID flow, does not expose request metadata to admins/users via backend APIs, and does not implement full admin-vs-user role management and user deletion as specified. Some frontend UI displays name/ID using locally fabricated values rather than backend-stored metadata.",
+  "missing_requirements": [
+    {
+      "id": "REQ-9",
+      "requirement": "Access request flow must require name input and persist request metadata (name + short identifier) server-side; pending UI must show backend-returned name + identifier and remain stable after refresh.",
+      "reason": "Backend requestApproval() takes no name and returns nothing; there is no backend API shown that stores/returns a persisted short identifier tied to the approval request. Frontend generates the 4-character ID client-side and derives name from a separate \"user profile\" map, not from approval-request metadata returned by requestApproval.",
+      "evidence": [
+        "backend/main.mo (public shared func requestApproval() : async () { UserApproval.requestApproval(approvalState, caller); })",
+        "frontend/src/pages/AccessPendingScreen.tsx (\"Generate a simple 4-character ID (client-side for now)\"; saves profile then calls requestApproval; sets generatedId locally)"
+      ]
+    },
+    {
+      "id": "REQ-10",
+      "requirement": "Backend must generate and store a 4-character identifier per access request, expose it via APIs to both the pending-user screen and admin approvals list, and handle collisions.",
+      "reason": "No server-side 4-character identifier generation or collision handling is shown. The identifier is generated in the frontend (random) and in the admin list via a hash of the principal, neither of which is persisted server-side or collision-safe as required.",
+      "evidence": [
+        "backend/main.mo (no identifier generation/storage; requestApproval returns unit)",
+        "frontend/src/pages/AccessPendingScreen.tsx (generateId() client-side random 4 chars)",
+        "frontend/src/pages/AdminDashboard.tsx (generateIdFromPrincipal: \"Generate a consistent 4-char ID from principal\")"
+      ]
+    },
+    {
+      "id": "REQ-11",
+      "requirement": "Admin Dashboard pending approvals must display requesting user’s name and 4-character identifier from stored request metadata, with fallback for legacy entries.",
+      "reason": "Pending approvals rows display a name from a separate profile lookup and an ID computed from principal text, not request metadata from backend approvals list. Also fallback label requested was e.g. “Unknown name”; code uses “Unknown User” and does not show evidence of handling missing identifier stored server-side.",
+      "evidence": [
+        "frontend/src/pages/AdminDashboard.tsx (displayName = profile?.name || 'Unknown User'; displayId = generateIdFromPrincipal(approval.principal))"
+      ]
+    },
+    {
+      "id": "REQ-12",
+      "requirement": "Clear distinction between admins vs approved users in backend role logic and Admin Dashboard UI; admins can grant/revoke admin rights; non-admins cannot access admin-only APIs.",
+      "reason": "While backend gates listApprovals/setApproval by admin, the diff does not show any backend APIs for granting/revoking admin rights or listing approved users with roles. In the Admin Dashboard UI, role display/toggling is explicitly a placeholder using local state because the backend does not expose roles per user.",
+      "evidence": [
+        "backend/main.mo (only isCallerApproved, requestApproval, setApproval, listApprovals; no role assignment/removal APIs shown)",
+        "frontend/src/hooks/useQueries.ts (useGetUserRole returns default with comment: \"Backend currently only has getCallerUserRole, not getUserRole\")",
+        "frontend/src/pages/AdminDashboard.tsx (\"Note: Backend doesn't expose getUserRole yet... placeholder\"; local isAdmin state)"
+      ]
+    },
+    {
+      "id": "REQ-13",
+      "requirement": "Admin-only remove approved user that fully deletes access rights (including admin rights) and resets metadata so user must re-request approval; lists refresh.",
+      "reason": "No backend function for removing a user or deleting approval/role/profile metadata is shown. The Admin Dashboard UI indicates remove functionality exists, but there is no evidence in the diff summary of a corresponding backend API or mutation hook implementation that performs full deletion and revokes admin rights.",
+      "evidence": [
+        "backend/main.mo (no remove/delete user function)",
+        "frontend/src/pages/AdminDashboard.tsx (ApprovedUserRow has onRemove prop; remove UI implied but backend support not evidenced)"
+      ]
+    },
+    {
+      "id": "REQ-14",
+      "requirement": "Frontend query invalidation/refetch should reliably update approvals/roles/user removal and the logged-in user’s access gate without full reload.",
+      "reason": "Some invalidations exist (approvals/accessStatus/userRoles), but role management is stubbed (no real backend role query), and user removal mutations/invalidation are not evidenced in the truncated diff. Therefore, the requirement is not fully implemented end-to-end.",
+      "evidence": [
+        "frontend/src/hooks/useQueries.ts (useSetApproval invalidates approvals/accessStatus/userRoles; useGetUserRole is a stub returning default role)",
+        "frontend/src/hooks/useQueries.ts (file truncated around role assignment; no shown remove-user mutation)"
+      ]
+    }
+  ],
+  "hallucinated_features": [
+    {
+      "description": "Client-side generation of the 4-character request identifier (random in pending screen; principal-hash in admin list) rather than backend-generated, persisted, and returned identifier.",
+      "reason": "The BuildRequest explicitly requires the short identifier to be generated and stored server-side and shown using backend-returned data; the diff implements local fabrication instead.",
+      "evidence": [
+        "frontend/src/pages/AccessPendingScreen.tsx (\"Generate a simple 4-character ID (client-side for now)\" and sets generatedId locally)",
+        "frontend/src/pages/AdminDashboard.tsx (generateIdFromPrincipal computes ID from principal text)"
+      ]
+    },
+    {
+      "description": "Introduction/use of a separate 'user profile' persistence (saveCallerUserProfile/getCallerUserProfile/getUserProfile) as the mechanism for access-request name capture.",
+      "reason": "REQ-9 requires persisting request metadata associated with the access request; the diff instead adds/uses a profile store and does not show requestApproval carrying/returning request metadata. This is an implementation not requested and does not satisfy the specified flow.",
+      "evidence": [
+        "backend/main.mo (userProfiles map + getCallerUserProfile/getUserProfile/saveCallerUserProfile)",
+        "frontend/src/pages/AccessPendingScreen.tsx (saves profile first, then calls requestApproval)"
+      ]
+    }
+  ],
+  "confidence": 0.74,
+  "changed_files": [
+    "backend/main.mo",
+    "frontend-file-summaries.txt",
+    "frontend/src/App.tsx",
+    "frontend/src/hooks/useAccessStatus.ts",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/AccessPendingScreen.tsx",
+    "frontend/src/pages/AdminDashboard.tsx",
+    "project_state.json"
+  ]
+}

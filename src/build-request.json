@@ -1,0 +1,171 @@
+{
+  "kind": "build_request",
+  "title": "Fix admin approvals, add name + 4-character request ID, and distinguish admins vs approved users with full user deletion",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-8",
+      "text": "Fix the Admin Dashboard pending-approval Approve and Reject actions so that clicking the buttons actually updates the corresponding user’s approval status in the backend and the UI refreshes to reflect the change.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "The approve and decline button does'nt work for pending approvals. Please fix."
+        ]
+      },
+      "acceptanceCriteria": [
+        "From the Admin Dashboard, clicking Approve moves the selected user from Pending Approvals to Approved Users after refresh (without requiring a full page reload).",
+        "From the Admin Dashboard, clicking Reject removes the selected user from Pending Approvals and they remain unable to access the app.",
+        "No console errors occur due to invalid Principal values being passed to backend methods.",
+        "After approving/rejecting, the approvals list query is invalidated/refetched and shows the updated state."
+      ]
+    },
+    {
+      "id": "REQ-9",
+      "text": "Update the access request flow so that when a logged-in but unapproved user clicks “Request Approval”, they must enter their name, and after submitting they see a pending state that displays both their entered name and a generated short identifier.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1",
+          "msg-6"
+        ],
+        "quotes": [
+          "Currently the pending approvals shows an ID that the user may not know. Instead, when new users request approval, let them Write their name and generate a short ID identifier that both the admin and user see.",
+          "When clicking \"request access\" Let the user fill in his name and proceed to a pending state where his name and the generated ID identifier is shown."
+        ]
+      },
+      "acceptanceCriteria": [
+        "The Access Pending screen includes a name input before submission and prevents submission when the name is empty.",
+        "On submit, the backend persists the user’s request metadata (at minimum: name and short identifier) associated with the caller principal.",
+        "After submitting, the pending UI shows the same name and short identifier returned from the backend (not locally fabricated).",
+        "Refreshing the page while still pending continues to show the same stored name and short identifier for that pending request."
+      ]
+    },
+    {
+      "id": "REQ-10",
+      "text": "Generate a short identifier for each access request that is exactly 4 characters long, and make the identifier visible to both the requesting user (on their pending screen) and admins (in the pending approvals list).",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-7"
+        ],
+        "quotes": [
+          "yes, something with 4 characters is enough."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Each new access request results in a 4-character identifier being stored server-side for the requesting principal.",
+        "The identifier returned by the backend is exactly 4 characters long.",
+        "The identifier is exposed via backend APIs used by both the pending-user screen and the admin approvals list.",
+        "Two different pending requests should not share the same identifier at the same time (handle collisions by regenerating)."
+      ]
+    },
+    {
+      "id": "REQ-11",
+      "text": "Update the Admin Dashboard pending approvals list to display the requesting user’s name and 4-character identifier (instead of showing only a partial principal string).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1",
+          "msg-6"
+        ],
+        "quotes": [
+          "Currently the pending approvals shows an ID that the user may not know. Instead, when new users request approval, let them Write their name and generate a short ID identifier that both the admin and user see."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Each pending approval row displays the user’s name and the 4-character identifier.",
+        "The UI does not require admins to interpret raw principal text to identify users.",
+        "If a legacy pending request has no stored name/identifier, the UI shows a clear fallback label (e.g., “Unknown name”) while still allowing approve/reject."
+      ]
+    },
+    {
+      "id": "REQ-12",
+      "text": "Ensure there is a clear distinction between normal approved users and admins in both backend role logic and the Admin Dashboard UI; admins must be able to grant and revoke admin rights for approved users with the current role/status clearly shown.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-7"
+        ],
+        "quotes": [
+          "There should be a distiction between normal approved users and admins."
+        ]
+      },
+      "acceptanceCriteria": [
+        "The Admin Dashboard approved users list shows each approved user’s current role (Admin vs Approved User) in the UI.",
+        "Toggling admin rights updates the backend and refreshes the UI so the role label changes accordingly.",
+        "Non-admin approved users cannot access admin-only backend APIs (admin list/role management/approval actions).",
+        "Admin designation is not inferred from approval status; it is displayed and managed as a separate role."
+      ]
+    },
+    {
+      "id": "REQ-13",
+      "text": "Add an admin-only ability to remove an approved user such that removing the user fully deletes their access rights (including revoking admin rights if present) and prevents them from accessing the app until they request approval again.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-6",
+          "msg-7"
+        ],
+        "quotes": [
+          "When appoving, the corresponding Internet Identity gets acces to the app. Also in the admin section a list is presented with all approved identities with the ability to remove users.",
+          "yes, completely delete access rights when deleted"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Admin Dashboard provides a “Remove user” action for each approved user.",
+        "Removing a user makes them fail the app access gate (they are treated as not approved).",
+        "If the removed user previously had admin rights, those rights are revoked as part of removal.",
+        "Any stored user metadata tied to access (e.g., request info / profile) is removed or reset such that the user must re-request approval to regain access.",
+        "After removal, the approved users list refreshes and no longer includes that user."
+      ]
+    },
+    {
+      "id": "REQ-14",
+      "text": "Update frontend query invalidation/refetch behavior so that changes to approvals, roles, and user removal reliably update all relevant UI states (Admin Dashboard lists and the logged-in user’s access gating state) without a full reload.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1",
+          "msg-6"
+        ],
+        "quotes": [
+          "Please fix.",
+          "When appoving, the corresponding Internet Identity gets acces to the app."
+        ]
+      },
+      "acceptanceCriteria": [
+        "After an admin approves a user, the approvals list updates and the newly approved user can enter the app on next access-status refresh (or after re-checking access status).",
+        "After an admin removes a user, that user is denied access (access-status query reflects the change).",
+        "React Query keys for approvals/access status/roles are invalidated appropriately after each mutation (approve/reject/role change/remove)."
+      ]
+    }
+  ],
+  "constraints": [
+    "Backend must remain a single Motoko actor with all custom logic in backend/main.mo (no additional backend services).",
+    "Do not edit files under frontend/src/components/ui (compose existing UI components instead).",
+    "Do not modify immutable frontend paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui.",
+    "Use English for all user-facing UI text."
+  ],
+  "nonGoals": [
+    "Add third-party authentication providers (only Internet Identity is supported).",
+    "Introduce external databases or off-chain storage.",
+    "Implement real-time updates via WebSockets."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
+  }
+}
