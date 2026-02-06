@@ -10,6 +10,7 @@ import MixinAuthorization "authorization/MixinAuthorization";
 import Runtime "mo:core/Runtime";
 
 
+// Apply migration module for upgrade
 
 actor {
   var requestCounter = 0;
@@ -30,6 +31,19 @@ actor {
     fourCharId : Text;
     status : UserApproval.ApprovalStatus;
   };
+
+  public type ImageData = {
+    bytes : [Nat8];
+    contentType : Text;
+  };
+
+  public type CustomModule = {
+    moduleId : Text;
+    title : Text;
+    image : ImageData;
+  };
+
+  let modules = Map.empty<Text, CustomModule>();
 
   func isApprovedOrAdmin(caller : Principal) : Bool {
     AccessControl.isAdmin(accessControlState, caller) or UserApproval.isApproved(approvalState, caller);
@@ -146,12 +160,12 @@ actor {
   // Reset all application data while preserving admin identities
   public shared ({ caller }) func backendReset() : async () {
     requireAdmin(caller);
-    
+
     // Clear user profiles
     for ((key, _) in userProfiles.entries()) {
       userProfiles.remove(key);
     };
-    
+
     // Clear content stores
     for ((key, _) in notifications.entries()) {
       notifications.remove(key);
@@ -159,17 +173,22 @@ actor {
     for ((key, _) in notifications2.entries()) {
       notifications2.remove(key);
     };
-    
+
     // Clear access requests
     for ((key, _) in accessRequests.entries()) {
       accessRequests.remove(key);
     };
-    
+
     // Reset counter
     requestCounter := 0;
-    
+
     // Reset approval state while preserving accessControlState (which contains admin roles)
     approvalState := UserApproval.initState(accessControlState);
+
+    // Clear custom modules
+    for ((id, _) in modules.entries()) {
+      modules.remove(id);
+    };
   };
 
   func requireAdmin(caller : Principal) {
@@ -232,5 +251,28 @@ actor {
 
   public func greet(name : Text) : async Text {
     "Hello, " # name # "!";
+  };
+
+  // Custom Module Management (DSL_CORE HOMEPAGE)
+  public shared ({ caller }) func createCustomModule(customModule : CustomModule) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
+    modules.add(customModule.moduleId, customModule);
+  };
+
+  public query ({ caller }) func listCustomModules() : async [CustomModule] {
+    modules.values().toArray();
+  };
+
+  public shared ({ caller }) func deleteCustomModule(moduleId : Text) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
+    let existed = modules.containsKey(moduleId);
+    modules.remove(moduleId);
+    if (not existed) {
+      Runtime.trap("Module not found or has already been deleted");
+    };
   };
 };

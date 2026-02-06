@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import type { UserApprovalInfo, ApprovalStatus, UserNameInfo } from '../backend';
+import type { UserApprovalInfo, ApprovalStatus, UserNameInfo, CustomModule } from '../backend';
 import { UserRole } from '../backend';
 import { Principal } from '@dfinity/principal';
 
@@ -195,4 +195,57 @@ export function useBackendReset() {
       // Silently handle errors
     },
   });
+}
+
+// Custom Module Queries
+export function useListCustomModules() {
+  const { actor, isFetching: actorFetching } = useActor();
+
+  return useQuery<CustomModule[]>({
+    queryKey: ['customModules'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.listCustomModules();
+    },
+    enabled: !!actor && !actorFetching,
+  });
+}
+
+export function useCreateCustomModule() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (module: CustomModule) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.createCustomModule(module);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customModules'] });
+    },
+  });
+}
+
+export function useDeleteCustomModule() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (moduleId: string) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.deleteCustomModule(moduleId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customModules'] });
+    },
+  });
+}
+
+export function useGetCustomModule(moduleId: string | undefined) {
+  const { data: modules, isLoading } = useListCustomModules();
+
+  return {
+    data: moduleId ? modules?.find(m => m.moduleId === moduleId) : undefined,
+    isLoading,
+  };
 }

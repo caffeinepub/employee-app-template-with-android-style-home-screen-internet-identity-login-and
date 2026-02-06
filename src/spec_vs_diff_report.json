@@ -1,14 +1,16 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T21:54:07.113Z",
-  "summary": "The diff shows changes in `frontend/src/pages/AdminDashboard.tsx` adding a responsive, stacked-on-mobile layout for `ApprovedUserRow` using Tailwind classes (`flex flex-col sm:flex-row ...`), which aligns with REQ-1’s mobile-optimized alignment/spacing goal. Due to truncation, it’s not fully verifiable whether only the Approved Users section was changed and whether button labels/behavior remained identical, but no explicit behavior changes are visible in the provided excerpt.",
+  "generatedAt": "2026-02-06T22:57:28.263Z",
+  "summary": "Diff adds client-side image compression and robust error-to-string formatting utilities, and updates AdminDashboard to import/use them for the Add Custom Module flow, aiming to prevent HTTP 413 and display raw backend errors.",
   "missing_requirements": [],
   "hallucinated_features": [],
-  "confidence": 0.6,
+  "confidence": 0.62,
   "changed_files": [
     "frontend-file-summaries.txt",
     "frontend/src/pages/AdminDashboard.tsx",
+    "frontend/src/utils/errorToString.ts",
+    "frontend/src/utils/imageCompression.ts",
     "project_state.json"
   ]
 }

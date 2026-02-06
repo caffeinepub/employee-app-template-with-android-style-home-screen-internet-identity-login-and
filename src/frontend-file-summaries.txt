@@ -1,18 +1,22 @@
 {
   "frontend/src/App.tsx": "Main app component that handles authentication flow with improved loading state logic using isFetched to prevent flashing, showing login screen for unauthenticated users, access pending screen for non-approved users, and the main app router for approved users.",
   "frontend/src/hooks/useAccessStatus.ts": "Custom hook that queries the backend for the current user's approval status and admin role with refetch on mount and window focus enabled for reliable state updates after mutations.",
-  "frontend/src/hooks/useQueries.ts": "React Query hooks for backend operations including user profiles, approvals using getAllUsersWithFullName endpoint that returns UserNameInfo with name and fourCharId, role management, announcement content, and backend reset mutation with silent error handling.",
-  "frontend/src/router/AppRouter.tsx": "TanStack Router configuration defining routes for home screen, three module pages, and admin dashboard with appropriate guards.",
+  "frontend/src/hooks/useQueries.ts": "React Query hooks for backend operations including user profiles, approvals, role management, announcements, backend reset, and custom module CRUD operations (list, create, delete, get by ID) with proper cache invalidation.",
+  "frontend/src/router/AppRouter.tsx": "TanStack Router configuration with routes for home, three static module pages, dynamic custom module route (/modules/$moduleId), and admin dashboard with guard.",
   "frontend/src/components/AdminGuard.tsx": "Route guard component that redirects non-admin users away from admin-only pages and shows loading state during access verification.",
   "frontend/src/pages/LoginScreen.tsx": "Android-style login screen with wallpaper background and Internet Identity sign-in button.",
   "frontend/src/pages/AccessPendingScreen.tsx": "Access request screen that allows users to submit or re-submit their access request with name validation, displays pending state with editable name field and principal, and includes a re-submit button that refreshes the request timestamp while maintaining localStorage persistence scoped to current principal.",
-  "frontend/src/pages/HomeScreen.tsx": "Android-style launcher home screen with wallpaper background, app icon grid for three modules, announcement display, user profile setup modal, and status bar with admin/logout controls.",
+  "frontend/src/pages/HomeScreen.tsx": "Android-style launcher home screen displaying built-in modules followed by admin-created custom modules in a 3-column grid, with announcement display, user profile setup modal, and status bar controls.",
   "frontend/src/pages/modules/FrieslandFungies.tsx": "Placeholder module page for Friesland Fungies with header navigation and content area.",
   "frontend/src/pages/modules/LandVanOns.tsx": "Placeholder module page for Land van Ons with header navigation and content area.",
   "frontend/src/pages/modules/Pottle.tsx": "Placeholder module page for Pottle with header navigation and content area.",
-  "frontend/src/pages/AdminDashboard.tsx": "Admin dashboard displaying pending approvals and approved users with mobile-optimized responsive layout for ApprovedUserRow that stacks content and actions vertically on small screens and horizontally on tablet/desktop, includes announcement editor and backend reset functionality with confirmation dialog.",
+  "frontend/src/pages/AdminDashboard.tsx": "Admin dashboard with sections for pending approvals, approved users, announcement editor, backend reset, and custom modules management (add with title + automatic image compression, list with thumbnails, delete with confirmation, and detailed error display).",
   "frontend/src/index.css": "Global styles with emerald/teal Android-inspired OKLCH color system for light and dark modes, avoiding blue/purple palette.",
   "frontend/tailwind.config.js": "Tailwind configuration with custom color tokens, border radius, and animation settings matching the Android-inspired design system.",
   "frontend/src/backend.d.ts": "TypeScript interface definitions for backend canister with UserApprovalInfo now including optional name and fourCharId fields for displaying immutable requester information.",
-  "frontend/src/utils/masterAdmin.ts": "Utility file containing the hardcoded master admin principal constant and helper function to check if a principal text matches the master admin."
+  "frontend/src/utils/masterAdmin.ts": "Utility file containing the hardcoded master admin principal constant and helper function to check if a principal text matches the master admin.",
+  "frontend/src/utils/customModuleImage.ts": "Utility for converting custom module ImageData (bytes + contentType) into browser-renderable object URLs with cleanup helpers to prevent memory leaks, using proper Uint8Array conversion for Blob compatibility.",
+  "frontend/src/pages/modules/CustomModulePlaceholder.tsx": "Dynamic placeholder page for custom modules that fetches module data by moduleId from route params, displays module image and title in header, shows \"Module not found\" message for invalid IDs, and includes back-to-home navigation.",
+  "frontend/src/utils/imageCompression.ts": "Client-side image compression utility that automatically downscales and adjusts JPEG quality to reduce image file sizes below ~2MB for canister upload compatibility.",
+  "frontend/src/utils/errorToString.ts": "Robust error formatter that extracts meaningful details (status, body, headers, message) from unknown thrown values and safely stringifies them for display."
 }

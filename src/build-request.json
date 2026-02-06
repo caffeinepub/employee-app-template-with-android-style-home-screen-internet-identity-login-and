@@ -1,39 +1,55 @@
 {
   "kind": "build_request",
-  "title": "Mobile-optimized layout for Approved Users rows (alignment/spacing only)",
+  "title": "Fix Add Custom Module camera image upload (HTTP 413) with automatic client-side compression and raw backend error display",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Update the Admin Dashboard \"Approved Users\" section rows to use a mobile-optimized layout that fixes button alignment/spacing on small screens without changing any button behavior (same actions, same labels, same enabled/disabled logic).",
+      "text": "Implement automatic client-side image compression for the \"Add Custom Module\" image upload so that camera-captured images are compressed before being sent to the backend, preventing HTTP 413 payload-too-large errors.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-user-1"
+          "msg-4"
         ],
         "quotes": [
-          "1. different mobile-optimezed design\n2. Only this section, the rest does look fine.\n3. Only alignment/spacing"
+          "1. automaticall compress",
+          "2. it is part of the add custom module section"
         ]
       },
       "acceptanceCriteria": [
-        "Only the \"Approved Users\" section UI is changed; \"Pending Approvals\", reset section, and other pages remain visually/functionally unchanged.",
-        "On small/mobile widths, each ApprovedUserRow no longer overflows horizontally and no buttons are clipped off-screen.",
-        "On small/mobile widths, the ApprovedUserRow layout is stacked (content area and actions arranged to fit narrow screens) with consistent spacing and alignment (no overlapping elements).",
-        "The action buttons in ApprovedUserRow (Make/Remove Admin and Remove) remain fully usable and trigger the same callbacks as before; no new confirmation flows or behavior changes are introduced.",
-        "On tablet/desktop widths, the ApprovedUserRow retains an appropriate horizontal layout similar to the current design (no regression).",
-        "Implementation is done by editing the ApprovedUserRow markup/classes in frontend/src/pages/AdminDashboard.tsx (responsive Tailwind classes preferred)."
+        "When an admin selects an image in the Custom Modules \"Add Module\" form, the app compresses the image before calling the createCustomModule mutation.",
+        "The compressed image payload is typically below the canister request limit (~2,097,152 bytes), avoiding the HTTP 413 error shown in the screenshot for common camera photos.",
+        "If compression fails for any reason, the module creation flow is aborted and an error is shown to the user (see REQ-2).",
+        "The original upload behavior still works for already-small images (i.e., do not unnecessarily degrade small files)."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "In the \"Add Custom Module\" form, display the backend error directly (raw error message/details) when module creation fails (including HTTP status/body text), so the user can use it to diagnose issues.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "Just present one that will help you to resolve, so probably best to show the backend error directly"
+        ]
+      },
+      "acceptanceCriteria": [
+        "When the createCustomModule call fails, the UI renders the most informative backend-provided error text available (e.g., includes HTTP status code and response body if present).",
+        "If the thrown error is not a standard Error instance, the UI still shows a useful string representation (not blank/undefined).",
+        "The error is displayed in the Custom Modules section of the Admin Dashboard without crashing the page."
       ]
     }
   ],
   "constraints": [
-    "Do not change button behavior or backend logic; alignment/spacing and responsive layout only.",
-    "Limit changes to the \"Approved Users\" section; the rest of the app UI should remain as-is.",
-    "Do not edit files under frontend/src/components/ui (read-only)."
+    "Do not modify any files under frontend/src/components/ui (read-only UI component sources).",
+    "Do not modify frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, or frontend/src/main.tsx (immutable paths).",
+    "Keep backend architecture as a single Motoko actor in backend/main.mo; do not introduce additional backend services."
   ],
   "nonGoals": [
-    "Redesigning the entire mobile UI outside the Approved Users section.",
-    "Changing role/approval logic, backend APIs, or persistence.",
-    "Replacing buttons with icon-only controls or altering button text/actions."
+    "Do not increase the backend/canister request size limit to fix the issue (the fix should be client-side compression).",
+    "Do not change the CustomModule Motoko type or storage model unless required for the compression fix."
   ],
   "imageRequirements": {
     "required": [],

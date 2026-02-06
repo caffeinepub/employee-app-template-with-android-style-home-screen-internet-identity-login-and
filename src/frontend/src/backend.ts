@@ -99,6 +99,15 @@ export interface UserApprovalInfo {
     status: ApprovalStatus;
     principal: Principal;
 }
+export interface CustomModule {
+    moduleId: string;
+    title: string;
+    image: ImageData;
+}
+export interface ImageData {
+    contentType: string;
+    bytes: Uint8Array;
+}
 export enum ApprovalStatus {
     pending = "pending",
     approved = "approved",
@@ -115,6 +124,8 @@ export interface backendInterface {
     addContent2(id: string, content: string): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     backendReset(): Promise<void>;
+    createCustomModule(customModule: CustomModule): Promise<void>;
+    deleteCustomModule(moduleId: string): Promise<void>;
     getAccessRequest(user: Principal): Promise<{
         name: string;
         fourCharId: string;
@@ -134,6 +145,7 @@ export interface backendInterface {
     isCallerAdmin(): Promise<boolean>;
     isCallerApproved(): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
+    listCustomModules(): Promise<Array<CustomModule>>;
     requestApproval(): Promise<void>;
     requestApprovalWithName(name: string): Promise<{
         name: string;
@@ -214,6 +226,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.backendReset();
+            return result;
+        }
+    }
+    async createCustomModule(arg0: CustomModule): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createCustomModule(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createCustomModule(arg0);
+            return result;
+        }
+    }
+    async deleteCustomModule(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteCustomModule(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteCustomModule(arg0);
             return result;
         }
     }
@@ -390,6 +430,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.listApprovals();
             return from_candid_vec_n11(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async listCustomModules(): Promise<Array<CustomModule>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.listCustomModules();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.listCustomModules();
+            return result;
         }
     }
     async requestApproval(): Promise<void> {

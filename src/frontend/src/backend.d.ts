@@ -17,6 +17,15 @@ export interface UserApprovalInfo {
     status: ApprovalStatus;
     principal: Principal;
 }
+export interface CustomModule {
+    moduleId: string;
+    title: string;
+    image: ImageData;
+}
+export interface ImageData {
+    contentType: string;
+    bytes: Uint8Array;
+}
 export enum ApprovalStatus {
     pending = "pending",
     approved = "approved",
@@ -32,6 +41,8 @@ export interface backendInterface {
     addContent2(id: string, content: string): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     backendReset(): Promise<void>;
+    createCustomModule(customModule: CustomModule): Promise<void>;
+    deleteCustomModule(moduleId: string): Promise<void>;
     getAccessRequest(user: Principal): Promise<{
         name: string;
         fourCharId: string;
@@ -51,6 +62,7 @@ export interface backendInterface {
     isCallerAdmin(): Promise<boolean>;
     isCallerApproved(): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
+    listCustomModules(): Promise<Array<CustomModule>>;
     requestApproval(): Promise<void>;
     requestApprovalWithName(name: string): Promise<{
         name: string;

@@ -13,6 +13,15 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const ImageData = IDL.Record({
+  'contentType' : IDL.Text,
+  'bytes' : IDL.Vec(IDL.Nat8),
+});
+export const CustomModule = IDL.Record({
+  'moduleId' : IDL.Text,
+  'title' : IDL.Text,
+  'image' : ImageData,
+});
 export const ApprovalStatus = IDL.Variant({
   'pending' : IDL.Null,
   'approved' : IDL.Null,
@@ -35,6 +44,8 @@ export const idlService = IDL.Service({
   'addContent2' : IDL.Func([IDL.Text, IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'backendReset' : IDL.Func([], [], []),
+  'createCustomModule' : IDL.Func([CustomModule], [], []),
+  'deleteCustomModule' : IDL.Func([IDL.Text], [], []),
   'getAccessRequest' : IDL.Func(
       [IDL.Principal],
       [IDL.Record({ 'name' : IDL.Text, 'fourCharId' : IDL.Text })],
@@ -59,6 +70,7 @@ export const idlService = IDL.Service({
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
   'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
+  'listCustomModules' : IDL.Func([], [IDL.Vec(CustomModule)], ['query']),
   'requestApproval' : IDL.Func([], [], []),
   'requestApprovalWithName' : IDL.Func(
       [IDL.Text],
@@ -80,6 +92,15 @@ export const idlFactory = ({ IDL }) => {
     'admin' : IDL.Null,
     'user' : IDL.Null,
     'guest' : IDL.Null,
+  });
+  const ImageData = IDL.Record({
+    'contentType' : IDL.Text,
+    'bytes' : IDL.Vec(IDL.Nat8),
+  });
+  const CustomModule = IDL.Record({
+    'moduleId' : IDL.Text,
+    'title' : IDL.Text,
+    'image' : ImageData,
   });
   const ApprovalStatus = IDL.Variant({
     'pending' : IDL.Null,
@@ -103,6 +124,8 @@ export const idlFactory = ({ IDL }) => {
     'addContent2' : IDL.Func([IDL.Text, IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'backendReset' : IDL.Func([], [], []),
+    'createCustomModule' : IDL.Func([CustomModule], [], []),
+    'deleteCustomModule' : IDL.Func([IDL.Text], [], []),
     'getAccessRequest' : IDL.Func(
         [IDL.Principal],
         [IDL.Record({ 'name' : IDL.Text, 'fourCharId' : IDL.Text })],
@@ -131,6 +154,7 @@ export const idlFactory = ({ IDL }) => {
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
     'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
+    'listCustomModules' : IDL.Func([], [IDL.Vec(CustomModule)], ['query']),
     'requestApproval' : IDL.Func([], [], []),
     'requestApprovalWithName' : IDL.Func(
         [IDL.Text],

@@ -2,10 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-admin-dashboard-approved-users-section-rows-to-use-a-mobile-optimized-layout-that-fixes-button-alignment-spacing-on-small-screens-without-changing-any-button-behavior-same-actions-same-labels-same-enabled-disabled-logic",
-      "featureTitle": "Update the Admin Dashboard \"Approved Users\" section rows to use a mobile-optimized layout that fixes button alignment/spacing on small screens without changing any button behavior (same actions, same labels, same enabled/disabled logic).",
+      "featureId": "feature-implement-automatic-client-side-image-compression-for-the-add-custom-module-image-upload-so-that-camera-captured-images-are-compressed-before-being-sent-to-the-backend-preventing-http-413-payload-too-large-errors",
+      "featureTitle": "Implement automatic client-side image compression for the \"Add Custom Module\" image upload so that camera-captured images are compressed before being sent to the backend, preventing HTTP 413 payload-too-large errors.",
       "files": [
-        "frontend/src/pages/AdminDashboard.tsx"
+        "frontend/src/pages/AdminDashboard.tsx",
+        "frontend/src/utils/imageCompression.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -18,6 +19,27 @@
       ],
       "testIds": [
         "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-in-the-add-custom-module-form-display-the-backend-error-directly-raw-error-message-details-when-module-creation-fails-including-http-status-body-text-so-the-user-can-use-it-to-diagnose-issues",
+      "featureTitle": "In the \"Add Custom Module\" form, display the backend error directly (raw error message/details) when module creation fails (including HTTP status/body text), so the user can use it to diagnose issues.",
+      "files": [
+        "frontend/src/pages/AdminDashboard.tsx",
+        "frontend/src/utils/errorToString.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "user-approval@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
       ],
       "confidence": "high"
     }

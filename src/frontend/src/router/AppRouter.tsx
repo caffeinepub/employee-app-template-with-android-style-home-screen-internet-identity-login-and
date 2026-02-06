@@ -3,6 +3,7 @@ import HomeScreen from '../pages/HomeScreen';
 import FrieslandFungies from '../pages/modules/FrieslandFungies';
 import LandVanOns from '../pages/modules/LandVanOns';
 import Pottle from '../pages/modules/Pottle';
+import CustomModulePlaceholder from '../pages/modules/CustomModulePlaceholder';
 import AdminDashboard from '../pages/AdminDashboard';
 import AdminGuard from '../components/AdminGuard';
 
@@ -37,6 +38,13 @@ const pottleRoute = createRoute({
   component: Pottle,
 });
 
+// Dynamic custom module route
+const customModuleRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/modules/$moduleId',
+  component: CustomModulePlaceholder,
+});
+
 // Admin route with guard
 function AdminRoute() {
   return (
@@ -58,6 +66,7 @@ const routeTree = rootRoute.addChildren([
   frieslandRoute,
   landVanOnsRoute,
   pottleRoute,
+  customModuleRoute,
   adminRoute,
 ]);
 

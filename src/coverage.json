@@ -1,23 +1,38 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T21:54:07.116Z",
+  "generatedAt": "2026-02-06T22:57:28.266Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 2,
+    "implemented": 2,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Update the Admin Dashboard \"Approved Users\" section rows to use a mobile-optimized layout that fixes button alignment/spacing on small screens without changing any button behavior (same actions, same labels, same enabled/disabled logic).",
+        "summary": "Implement automatic client-side image compression for the \"Add Custom Module\" image upload so that camera-captured images are compressed before being sent to the backend, preventing HTTP 413 payload-too-large errors.",
         "status": "implemented",
         "plannedFiles": [
+          "frontend/src/utils/imageCompression.ts",
           "frontend/src/pages/AdminDashboard.tsx"
         ],
         "matchedFiles": [
+          "frontend/src/utils/imageCompression.ts",
+          "frontend/src/pages/AdminDashboard.tsx"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "In the \"Add Custom Module\" form, display the backend error directly (raw error message/details) when module creation fails (including HTTP status/body text), so the user can use it to diagnose issues.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/utils/errorToString.ts",
+          "frontend/src/pages/AdminDashboard.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/utils/errorToString.ts",
           "frontend/src/pages/AdminDashboard.tsx"
         ]
       }
@@ -29,6 +44,8 @@
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
     "frontend/src/pages/AdminDashboard.tsx",
+    "frontend/src/utils/errorToString.ts",
+    "frontend/src/utils/imageCompression.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

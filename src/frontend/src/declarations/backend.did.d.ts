@@ -13,6 +13,12 @@ import type { Principal } from '@icp-sdk/core/principal';
 export type ApprovalStatus = { 'pending' : null } |
   { 'approved' : null } |
   { 'rejected' : null };
+export interface CustomModule {
+  'moduleId' : string,
+  'title' : string,
+  'image' : ImageData,
+}
+export interface ImageData { 'contentType' : string, 'bytes' : Uint8Array }
 export interface UserApprovalInfo {
   'status' : ApprovalStatus,
   'principal' : Principal,
@@ -32,6 +38,8 @@ export interface _SERVICE {
   'addContent2' : ActorMethod<[string, string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'backendReset' : ActorMethod<[], undefined>,
+  'createCustomModule' : ActorMethod<[CustomModule], undefined>,
+  'deleteCustomModule' : ActorMethod<[string], undefined>,
   'getAccessRequest' : ActorMethod<
     [Principal],
     { 'name' : string, 'fourCharId' : string }
@@ -47,6 +55,7 @@ export interface _SERVICE {
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isCallerApproved' : ActorMethod<[], boolean>,
   'listApprovals' : ActorMethod<[], Array<UserApprovalInfo>>,
+  'listCustomModules' : ActorMethod<[], Array<CustomModule>>,
   'requestApproval' : ActorMethod<[], undefined>,
   'requestApprovalWithName' : ActorMethod<
     [string],

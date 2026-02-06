@@ -1,18 +1,29 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Improve mobile UI for the \"Approved Users\" section by redesigning layout for mobile with corrected button alignment/spacing (no behavior changes).",
-  "architectural_notes": [],
+  "summary": "Application with an \"Add Custom Module\" section where users can upload images via camera; currently hitting a 413 upload-limit error that needs a client-side compression fix.",
+  "architectural_notes": [
+    "Implement automatic client-side compression for camera-captured images before upload in the Add Custom Module flow.",
+    "On upload failure after compression, display the backend error message directly to the user."
+  ],
   "known_issues": [
-    "Buttons not showing correctly in the mobile version within the Approved Users section (alignment/spacing issue)."
+    "Camera-based image upload in Add Custom Module can fail with HTTP 413 (payload too large) due to upload size limits."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-update-the-admin-dashboard-approved-users-section-rows-to-use-a-mobile-optimized-layout-that-fixes-button-alignment-spacing-on-small-screens-without-changing-any-button-behavior-same-actions-same-labels-same-enabled-disabled-logic",
-      "title": "Update the Admin Dashboard \"Approved Users\" section rows to use a mobile-optimized layout that fixes button alignment/spacing on small screens without changing any button behavior (same actions, same labels, same enabled/disabled logic).",
+      "id": "feature-implement-automatic-client-side-image-compression-for-the-add-custom-module-image-upload-so-that-camera-captured-images-are-compressed-before-being-sent-to-the-backend-preventing-http-413-payload-too-large-errors",
+      "title": "Implement automatic client-side image compression for the \"Add Custom Module\" image upload so that camera-captured images are compressed before being sent to the backend, preventing HTTP 413 payload-too-large errors.",
       "reqIds": [
         "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-add-custom-module-form-display-the-backend-error-directly-raw-error-message-details-when-module-creation-fails-including-http-status-body-text-so-the-user-can-use-it-to-diagnose-issues",
+      "title": "In the \"Add Custom Module\" form, display the backend error directly (raw error message/details) when module creation fails (including HTTP status/body text), so the user can use it to diagnose issues.",
+      "reqIds": [
+        "REQ-2"
       ],
       "version": 1
     }
@@ -20,12 +31,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Mobile-optimized layout for the Approved Users section; fix button alignment/spacing on mobile without changing behavior",
+      "summary": "Fix camera image upload 413 in Add Custom Module by automatically compressing camera images client-side and surface backend error message on failure.",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Mobile-optimized layout for Approved Users rows (alignment/spacing only)",
+  "projectName": "Fix Add Custom Module camera image upload (HTTP 413) with automatic client-side compression and raw backend error display",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

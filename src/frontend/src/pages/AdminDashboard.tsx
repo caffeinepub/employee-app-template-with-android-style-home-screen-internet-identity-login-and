@@ -1,8 +1,8 @@
 import { useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, CheckCircle, XCircle, Shield, User, Trash2, AlertTriangle } from 'lucide-react';
-import { useListApprovals, useSetApproval, useAssignUserRole, useUpdateAnnouncement, useGetAnnouncement, useGetUserRole, useBackendReset } from '../hooks/useQueries';
+import { ArrowLeft, CheckCircle, XCircle, Shield, User, Trash2, AlertTriangle, Plus, Image as ImageIcon } from 'lucide-react';
+import { useListApprovals, useSetApproval, useAssignUserRole, useUpdateAnnouncement, useGetAnnouncement, useGetUserRole, useBackendReset, useListCustomModules, useCreateCustomModule, useDeleteCustomModule } from '../hooks/useQueries';
 import { ApprovalStatus, UserRole } from '../backend';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Principal } from '@dfinity/principal';
 import type { UserNameInfo } from '../backend';
 import {
@@ -16,6 +16,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { createImageUrl, revokeImageUrl } from '../utils/customModuleImage';
+import { compressImage } from '../utils/imageCompression';
+import { errorToString } from '../utils/errorToString';
 
 // Component to display pending approval
 function UserApprovalRow({ 
@@ -148,6 +151,70 @@ function ApprovedUserRow({
   );
 }
 
+// Component for custom module row
+function CustomModuleRow({
+  module,
+  onDelete,
+  isPending,
+}: {
+  module: { moduleId: string; title: string; image: { bytes: Uint8Array; contentType: string } };
+  onDelete: () => void;
+  isPending: boolean;
+}) {
+  const [imageUrl, setImageUrl] = useState<string>('');
+
+  useEffect(() => {
+    const url = createImageUrl(module.image);
+    setImageUrl(url);
+    return () => {
+      revokeImageUrl(url);
+    };
+  }, [module.image]);
+
+  return (
+    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+      <div className="flex items-center gap-4 flex-1 min-w-0">
+        {imageUrl && (
+          <img
+            src={imageUrl}
+            alt={module.title}
+            className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+          />
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-base font-semibold text-slate-900 truncate">{module.title}</p>
+          <p className="text-sm text-slate-500 font-mono truncate">{module.moduleId}</p>
+        </div>
+      </div>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <button
+            disabled={isPending}
+            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 flex-shrink-0"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete
+          </button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Module</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{module.title}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={onDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { data: approvals, isLoading } = useListApprovals();
@@ -156,10 +223,19 @@ export default function AdminDashboard() {
   const { data: announcement } = useGetAnnouncement();
   const updateAnnouncement = useUpdateAnnouncement();
   const backendReset = useBackendReset();
+  const { data: customModules, isLoading: modulesLoading } = useListCustomModules();
+  const createModule = useCreateCustomModule();
+  const deleteModule = useDeleteCustomModule();
   
   const [announcementText, setAnnouncementText] = useState(announcement || '');
   const [isSaving, setIsSaving] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
+
+  // Module form state
+  const [moduleTitle, setModuleTitle] = useState('');
+  const [moduleImage, setModuleImage] = useState<File | null>(null);
+  const [moduleError, setModuleError] = useState('');
+  const [isCompressing, setIsCompressing] = useState(false);
 
   const handleApprove = async (principal: Principal) => {
     await setApproval.mutateAsync({
@@ -209,6 +285,59 @@ export default function AdminDashboard() {
     } catch (error) {
       // Silently handle errors - admins should never see reset failures
       // The backend ensures admin identities persist
+    }
+  };
+
+  const handleAddModule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setModuleError('');
+
+    // Validation
+    if (!moduleTitle.trim()) {
+      setModuleError('Please enter a module title');
+      return;
+    }
+    if (!moduleImage) {
+      setModuleError('Please select an image');
+      return;
+    }
+
+    try {
+      setIsCompressing(true);
+      
+      // Compress image before upload
+      const compressed = await compressImage(moduleImage);
+      
+      setIsCompressing(false);
+
+      // Generate moduleId from title
+      const moduleId = moduleTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+      await createModule.mutateAsync({
+        moduleId,
+        title: moduleTitle.trim(),
+        image: {
+          bytes: compressed.bytes,
+          contentType: compressed.contentType,
+        },
+      });
+
+      // Reset form
+      setModuleTitle('');
+      setModuleImage(null);
+      const fileInput = document.getElementById('module-image-input') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+    } catch (error: unknown) {
+      setIsCompressing(false);
+      setModuleError(errorToString(error));
+    }
+  };
+
+  const handleDeleteModule = async (moduleId: string) => {
+    try {
+      await deleteModule.mutateAsync(moduleId);
+    } catch (error: any) {
+      console.error('Failed to delete module:', error);
     }
   };
 
@@ -360,13 +489,13 @@ export default function AdminDashboard() {
 
           {/* Announcement Editor */}
           <div className="bg-white/95 backdrop-blur-md rounded-2xl p-6 shadow-xl">
-            <h2 className="text-xl font-semibold text-slate-900 mb-4">Global Announcement</h2>
+            <h2 className="text-xl font-semibold text-slate-900 mb-4">Announcement</h2>
             <form onSubmit={handleSaveAnnouncement} className="space-y-4">
               <textarea
                 value={announcementText}
                 onChange={(e) => setAnnouncementText(e.target.value)}
                 placeholder="Enter announcement text..."
-                className="w-full h-32 px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[120px] resize-y"
               />
               <button
                 type="submit"
@@ -376,6 +505,97 @@ export default function AdminDashboard() {
                 {isSaving ? 'Saving...' : 'Save Announcement'}
               </button>
             </form>
+          </div>
+
+          {/* Custom Modules Section */}
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl p-6 shadow-xl">
+            <h2 className="text-xl font-semibold text-slate-900 mb-4">Custom Modules</h2>
+            
+            {/* Add Module Form */}
+            <form onSubmit={handleAddModule} className="space-y-4 mb-6 p-4 bg-slate-50 rounded-xl">
+              <div>
+                <label htmlFor="module-title" className="block text-sm font-medium text-slate-700 mb-2">
+                  Module Title
+                </label>
+                <input
+                  id="module-title"
+                  type="text"
+                  value={moduleTitle}
+                  onChange={(e) => setModuleTitle(e.target.value)}
+                  placeholder="Enter module title"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="module-image-input" className="block text-sm font-medium text-slate-700 mb-2">
+                  Module Image
+                </label>
+                <div className="flex items-center gap-3">
+                  <label
+                    htmlFor="module-image-input"
+                    className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg cursor-pointer transition-colors flex items-center gap-2"
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                    Choose Image
+                  </label>
+                  <input
+                    id="module-image-input"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setModuleImage(file);
+                        setModuleError('');
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  {moduleImage && (
+                    <span className="text-sm text-slate-600 truncate max-w-xs">
+                      {moduleImage.name}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {moduleError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm font-semibold text-red-800 mb-2">Error:</p>
+                  <pre className="text-xs text-red-700 whitespace-pre-wrap font-mono overflow-x-auto">
+                    {moduleError}
+                  </pre>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={createModule.isPending || isCompressing}
+                className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg shadow-lg transition-all duration-200 disabled:opacity-50 flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                {isCompressing ? 'Compressing...' : createModule.isPending ? 'Adding...' : 'Add Module'}
+              </button>
+            </form>
+
+            {/* Module List */}
+            {modulesLoading ? (
+              <p className="text-slate-600">Loading modules...</p>
+            ) : !customModules || customModules.length === 0 ? (
+              <p className="text-slate-600">No custom modules yet</p>
+            ) : (
+              <div className="space-y-3">
+                {customModules.map((module) => (
+                  <CustomModuleRow
+                    key={module.moduleId}
+                    module={module}
+                    onDelete={() => handleDeleteModule(module.moduleId)}
+                    isPending={deleteModule.isPending}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
