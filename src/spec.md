@@ -1,10 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Ensure a previously deleted/removed principal is treated as a fully new requester when they submit a new access request, so a fresh pending approval is created and visible to admins.
+**Goal:** Make `requestApprovalWithName(name)` in the Motoko backend strictly and idempotently clear any existing backend state for the caller principal before creating a new pending approval request.
 
 **Planned changes:**
-- On access-request submission, detect principals that were previously removed/deleted and clear any stored backend records for that principal that could block creating a fresh pending approval (e.g., leftover pending/approved/role state and any stored access-request/profile data).
-- Create a new pending approval request for that principal after clearing stale records, and ensure it appears in the Admin Dashboard Pending Approvals list with the correct name and 4-character identifier.
+- Update `backend/main.mo` so `requestApprovalWithName(name)` performs a full cleanup of all stored records for the caller principal (pending/approved state, admin/role state, stored profile/name, and any access-request / four-character-id metadata) before writing a new `{name, fourCharId}` pending request.
+- Ensure the flow remains idempotent and consistent when called multiple times by the same unapproved principal (no duplicate/leftover state and no traps due to duplicates).
+- Preserve existing guard behavior that prevents admin principals from requesting approval, and ensure no other principals’ records are modified.
 
-**User-visible outcome:** A user who was previously removed can log in and submit a new access request successfully, and admins will see a new corresponding pending approval entry for that principal.
+**User-visible outcome:** A previously deleted/removed principal can request approval again and reliably appear as a fresh pending approval in the Admin Dashboard; repeated requests keep a single coherent pending state and return `{name, fourCharId}`.

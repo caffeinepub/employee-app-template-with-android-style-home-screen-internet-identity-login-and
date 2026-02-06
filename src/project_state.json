@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 17,
+  "projectStateVersion": 19,
   "summary": "Employee app template styled like an Android OS home screen with icon-based navigation, supporting employee login and admin-controlled access/roles, and three starter modules with placeholder pages.",
   "architectural_notes": [
     "Generate a user-facing short identifier for access requests: 4-character code (alphanumeric) shown to both requester and admins.",
@@ -9,7 +9,8 @@
     "Frontend must call backend requestApprovalWithName (not deprecated requestApproval) from the Request Approval button/flow.",
     "After a user is approved, the app must always use the name originally provided during the access-request; do not prompt for name re-entry and do not allow changing it via later flows.",
     "Deleted users must be able to re-request access using the exact same flow as a brand-new user: create a fresh pending-approval entry (new name + new 4-character ID) that is visible in Admin Pending Approvals.",
-    "Fix scope decision: When a previously deleted principal re-requests access, backend must clear any old records for that principal and treat them as fully new so a fresh pending-approval entry (new name + new 4-character ID) is created and visible to admins; do not implement broader orphan/stale record cleanup beyond this case."
+    "Fix scope decision: When a previously deleted principal re-requests access, backend must clear any old records for that principal and treat them as fully new so a fresh pending-approval entry (new name + new 4-character ID) is created and visible to admins; do not implement broader orphan/stale record cleanup beyond this case.",
+    "Decision: Implement a stricter backend reset for re-requests by previously deleted principals—before creating a new pending approval, clear/remove the principal from all relevant backend state (e.g., pending approvals, approved users, roles/admin map, stored profile/name metadata, short-ID mapping) so the principal is treated as fully new and a fresh pending entry appears in Admin Pending Approvals."
   ],
   "known_issues": [
     "Approve/Decline actions for pending access requests are not working (buttons have no effect / do not update access state).",
@@ -283,6 +284,14 @@
       "summary": "Backend: Ensure that when a principal that was previously removed/deleted requests approval again, the backend treats them as a completely new requester by clearing all backend records for that principal that could prevent creation of a fresh pending approval request (including any leftover pending/approved/role state and any stored access-request/profile data), and then creates a new pending request that appears in the Admin Dashboard pending approvals list.",
       "reqIds": [
         "REQ-26"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-19",
+      "summary": "Update the Motoko backend `requestApprovalWithName(name)` flow to perform a strict, idempotent cleanup of **all** backend-stored records for the caller principal (pending approval state, approved state, admin/role state, stored profile/name, and any stored access-request/4-char-id metadata) **before** creating a new pending approval request and storing the new `{name, fourCharId}` request record.",
+      "reqIds": [
+        "REQ-27"
       ],
       "status": "pending"
     }

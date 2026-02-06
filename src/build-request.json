@@ -1,49 +1,42 @@
 {
   "kind": "build_request",
-  "title": "Treat previously deleted principals as fully new when re-requesting approval",
+  "title": "Backend: Fully clean deleted principals before recreating pending access requests",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-26",
-      "text": "Backend: Ensure that when a principal that was previously removed/deleted requests approval again, the backend treats them as a completely new requester by clearing all backend records for that principal that could prevent creation of a fresh pending approval request (including any leftover pending/approved/role state and any stored access-request/profile data), and then creates a new pending request that appears in the Admin Dashboard pending approvals list.",
+      "id": "REQ-27",
+      "text": "Update the Motoko backend `requestApprovalWithName(name)` flow to perform a strict, idempotent cleanup of **all** backend-stored records for the caller principal (pending approval state, approved state, admin/role state, stored profile/name, and any stored access-request/4-char-id metadata) **before** creating a new pending approval request and storing the new `{name, fourCharId}` request record.",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "recent-messages"
         ],
         "quotes": [
-          "Only ensure that any previously deleted principal is treated as fully new (clearing all old records so a fresh pending request is created)."
+          "If you want, I can generate a stricter cleanup routine that clears all of them before creating the pending request.",
+          "Go for it",
+          "yes"
         ]
       },
       "acceptanceCriteria": [
-        "Given a user principal that was previously removed via the existing admin 'remove user' capability, when that same principal logs in and submits a new access request, the call succeeds and returns a new pending request payload (name + 4-character identifier).",
-        "After the re-request, admins see a corresponding new entry in Pending Approvals for that principal (with the correct name and 4-character identifier).",
-        "The backend does not reuse or preserve any stale pending/approved/admin records for the deleted principal in a way that prevents the new pending request from being created and listed.",
-        "This change is limited to re-request behavior for previously deleted principals; it does not add a general-purpose background/orphan cleanup routine."
+        "If a principal was previously removed/deleted and then calls `requestApprovalWithName(name)`, the backend always creates a fresh pending approval entry that appears in the Admin Dashboard pending approvals list.",
+        "The cleanup performed by `requestApprovalWithName(name)` removes any existing records for the caller principal across backend state (including approval/pending status, admin/role status, stored profile, and any prior access-request metadata) so that duplicate/leftover state cannot block a new pending request.",
+        "Calling `requestApprovalWithName(name)` multiple times for the same unapproved principal results in a single coherent pending request state (no traps due to duplicates; the backend ends in a valid pending state with a returned `{name, fourCharId}`).",
+        "Admin principals still cannot request approval; the existing trap/guard behavior remains in place.",
+        "No other principals’ approval/profile/role/access-request records are modified by this cleanup routine."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single-actor Motoko canister with all actor entrypoints in backend/main.mo (library helpers are fine, but do not introduce additional backend services).",
-    "Use English for any user-facing text.",
-    "Do not implement broad automatic cleanup of orphan/stale records beyond what is necessary to ensure a previously deleted principal can create a fresh pending request."
+    "Backend must remain a single-actor Motoko canister with all logic in `backend/main.mo`.",
+    "Use English for any user-facing text/messages/trap strings."
   ],
   "nonGoals": [
-    "Automatically cleaning up unrelated orphan/stale pending/approved records from older versions for principals that were not explicitly removed/deleted.",
-    "Changing the approval-request UI/UX or adding new admin screens beyond what is required for the backend fix."
+    "Do not redesign or restyle the frontend UI as part of this change.",
+    "Do not add new authentication providers; Internet Identity remains the only auth mechanism.",
+    "Do not introduce additional backend services or databases."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

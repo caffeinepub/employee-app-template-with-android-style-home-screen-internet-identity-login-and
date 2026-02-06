@@ -1,6 +1,6 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Frontend changes not required for backend re-request approval reset",
+  "title": "Frontend: No changes required for backend-only strict cleanup in requestApprovalWithName",
   "requirements": []
 }

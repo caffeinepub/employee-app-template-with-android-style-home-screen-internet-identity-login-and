@@ -1,13 +1,13 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T14:00:42.083Z",
-  "summary": "REQ-26 is not implemented as specified. The modified `requestApprovalWithName` creates a new access request and calls `UserApproval.requestApproval`, but there is no evidence it first clears any prior/deleted principal state (pending/approved/roles/profile/access-request) that could block re-requesting. The diff also introduces unrelated changes (migration scaffold, deprecating `requestApproval`, and making profile name immutable).",
+  "generatedAt": "2026-02-06T14:09:11.080Z",
+  "summary": "REQ-27 is partially addressed by adding a cleanup routine inside `requestApprovalWithName(name)` that removes `accessRequests` and `userProfiles` entries for the caller before creating a new pending request. However, the diff does not clearly implement a strict cleanup that *removes* all caller records across approval state and admin/role state; instead it sets various states (pending/rejected, guest) in a way that may not satisfy the “fully clean deleted principals” requirement as written. The diff also adds unrelated functionality (migration scaffolding and profile immutability enforcement).",
   "missing_requirements": [
     {
-      "id": "REQ-26",
-      "requirement": "When a principal that was previously removed/deleted requests approval again, the backend must treat them as completely new by clearing all backend records for that principal that could prevent creation of a fresh pending approval request (pending/approved/role state and stored access-request/profile data), then create a new pending request that appears in the Admin Dashboard pending approvals list.",
-      "reason": "`requestApprovalWithName` only generates an ID, writes to `accessRequests`, increments `requestCounter`, and calls `UserApproval.requestApproval`. There is no evidence of any clearing/reset/removal of prior records for the caller (e.g., deleting old approval state, roles/admin flags, prior access request, or user profile) before creating the new request.",
+      "id": "REQ-27",
+      "requirement": "Perform a strict, idempotent cleanup of all backend-stored records for the caller principal (pending approval state, approved state, admin/role state, stored profile/name, and any stored access-request/4-char-id metadata) before creating a new pending approval request.",
+      "reason": "The diff shows deletion of `accessRequests` and `userProfiles`, but does not show a true removal/reset of approval records and admin/role records; it instead calls `UserApproval.setApproval(...)` and `AccessControl.assignRole(..., #guest)` which appear to overwrite state rather than delete all caller records. The requirement explicitly calls for cleaning/removing all backend-stored records for the principal so leftover state cannot block recreation, but the diff provides no evidence of removing caller entries from the approval and access-control/admin/role storage structures.",
       "evidence": [
         "backend/main.mo"
       ]
@@ -15,29 +15,22 @@
   ],
   "hallucinated_features": [
     {
-      "description": "Added upgrade migration module and configured actor to use it (`with migration = Migration.run`).",
-      "reason": "BuildRequest does not request adding or changing upgrade/migration behavior; it only requests re-request behavior for previously deleted principals.",
+      "description": "Added migration scaffolding (`backend/migration.mo`) and configured the actor with a `with migration = Migration.run` clause.",
+      "reason": "BuildRequest constraints require keeping logic in `backend/main.mo` and do not request any migration changes; adding a new module and migration wiring is not requested by REQ-27.",
       "evidence": [
         "backend/migration.mo",
         "backend/main.mo"
       ]
     },
     {
-      "description": "Deprecated `requestApproval()` endpoint now traps with a message directing clients to `requestApprovalWithName`.",
-      "reason": "BuildRequest does not request API deprecation or behavior change for legacy endpoint; it focuses on handling re-requests after deletion.",
-      "evidence": [
-        "backend/main.mo"
-      ]
-    },
-    {
-      "description": "Prevent changing user profile name after approval (traps if profile already exists) and restricts profile saving to approved/admin users.",
-      "reason": "BuildRequest does not mention profile immutability or altering profile-save authorization rules; it only requires clearing profile/access-request data when re-requesting after deletion.",
+      "description": "Preventing modification of user profile name after approval (new authorization/trap behavior in `saveCallerUserProfile`).",
+      "reason": "REQ-27 only concerns strict cleanup in `requestApprovalWithName(name)` before recreating pending access requests; immutability of profile/name after approval is not requested.",
       "evidence": [
         "backend/main.mo"
       ]
     }
   ],
-  "confidence": 0.72,
+  "confidence": 0.62,
   "changed_files": [
     "backend/main.mo",
     "backend/migration.mo",

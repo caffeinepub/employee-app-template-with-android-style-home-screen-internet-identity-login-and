@@ -42,6 +42,25 @@ actor {
       Runtime.trap("Admins do not need approval");
     };
 
+    // STRICT IDEMPOTENT CLEANUP: Remove ALL backend-stored records for caller
+    // 1. Remove access request metadata
+    accessRequests.remove(caller);
+    
+    // 2. Remove user profile
+    userProfiles.remove(caller);
+    
+    // 3. Remove pending approval state (if exists)
+    UserApproval.setApproval(approvalState, caller, #pending);
+    
+    // 4. Clear approved state by setting to rejected, then back to pending
+    // This ensures any previous approval is completely removed
+    UserApproval.setApproval(approvalState, caller, #rejected);
+    
+    // 5. Remove any role assignments (reset to guest)
+    // Note: We cannot directly remove roles, but we can ensure the user
+    // is set to guest role which is the default unauthenticated state
+    AccessControl.assignRole(accessControlState, caller, caller, #guest);
+
     // Generate new identifier
     let fourCharId = generateFourCharId(requestCounter);
 
@@ -54,7 +73,7 @@ actor {
     accessRequests.add(caller, request);
     requestCounter += 1;
 
-    // Create new pending approval request
+    // Create new pending approval request (clean state)
     UserApproval.requestApproval(approvalState, caller);
 
     request;
@@ -65,14 +84,13 @@ actor {
     Runtime.trap("Please use 'requestApprovalWithName' to provide your name and receive your identifier.");
   };
 
-  // Deprecated but necessary for backward compatibility
   // AUTHORIZATION: Prevent modification of name after approval
   public shared ({ caller }) func saveCallerUserProfile(profile : { name : Text }) : async () {
     if (not (UserApproval.isApproved(approvalState, caller) or AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Only approved users can save profile");
     };
 
-    // Prevent changing the name - it must remain immutable
+    // Prevent changing the name - it must remain immutable post approval
     switch (userProfiles.get(caller)) {
       case (?_) {
         // Profile already exists - name cannot be changed
