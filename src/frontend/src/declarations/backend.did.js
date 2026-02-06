@@ -43,6 +43,11 @@ export const idlService = IDL.Service({
   'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
   'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
   'requestApproval' : IDL.Func([], [], []),
+  'requestApprovalWithName' : IDL.Func(
+      [IDL.Text],
+      [IDL.Record({ 'name' : IDL.Text, 'fourCharId' : IDL.Text })],
+      [],
+    ),
   'saveCallerUserProfile' : IDL.Func(
       [IDL.Record({ 'name' : IDL.Text })],
       [],
@@ -89,6 +94,11 @@ export const idlFactory = ({ IDL }) => {
     'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
     'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
     'requestApproval' : IDL.Func([], [], []),
+    'requestApprovalWithName' : IDL.Func(
+        [IDL.Text],
+        [IDL.Record({ 'name' : IDL.Text, 'fourCharId' : IDL.Text })],
+        [],
+      ),
     'saveCallerUserProfile' : IDL.Func(
         [IDL.Record({ 'name' : IDL.Text })],
         [],

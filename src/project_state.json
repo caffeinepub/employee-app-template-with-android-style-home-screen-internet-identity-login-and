@@ -1,14 +1,18 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 5,
+  "projectStateVersion": 11,
   "summary": "Employee app template styled like an Android OS home screen with icon-based navigation, supporting employee login and admin-controlled access/roles, and three starter modules with placeholder pages.",
   "architectural_notes": [
     "Generate a user-facing short identifier for access requests: 4-character code (alphanumeric) shown to both requester and admins.",
     "Deleting an approved user must revoke all permissions, including admin role, and remove their access entirely.",
-    "Admin UI/logic must differentiate between approved users and admins (distinct role/status)."
+    "Admin UI/logic must differentiate between approved users and admins (distinct role/status).",
+    "Frontend must call backend requestApprovalWithName (not deprecated requestApproval) from the Request Approval button/flow."
   ],
   "known_issues": [
-    "Approve/Decline actions for pending access requests are not working (buttons have no effect / do not update access state)."
+    "Approve/Decline actions for pending access requests are not working (buttons have no effect / do not update access state).",
+    "Admin Dashboard pending approvals shows requester name as \"name not available\" for newly submitted requests.",
+    "Admin Dashboard displays a different 4-character identifier than what the requester sees for the same pending access request.",
+    "Request access flow fails for new Internet Identity because frontend still calls deprecated requestApproval API; backend returns error: \"Deprecated: Please use requestApprovalWithName instead\"."
   ],
   "isFixRequest": true,
   "existing_features": [
@@ -115,6 +119,54 @@
         "REQ-14"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-identify-and-fix-the-root-cause-that-prevents-an-unapproved-logged-in-user-from-successfully-submitting-an-access-request-the-ui-returns-to-the-request-access-form-with-no-pending-state-and-the-request-never-appears-in-admin-dashboard",
+      "title": "Identify and fix the root cause that prevents an unapproved logged-in user from successfully submitting an access request (the UI returns to the Request Access form with no pending state, and the request never appears in Admin Dashboard).",
+      "reqIds": [
+        "REQ-15"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-frontend-update-accesspendingscreen-to-use-the-fixed-backend-flow-submit-name-request-approval-in-one-successful-operation-and-render-the-pending-state-using-backend-returned-data-name-4-character-identifier-rather-than-generating-a-random-client-side-id",
+      "title": "Frontend: Update AccessPendingScreen to use the fixed backend flow (submit name + request approval in one successful operation), and render the pending state using backend-returned data (name + 4-character identifier) rather than generating a random client-side ID.",
+      "reqIds": [
+        "REQ-18"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-frontend-update-admindashboard-pending-approvals-display-to-use-the-backend-provided-request-name-and-4-character-identifier-for-each-pending-approval-and-remove-any-placeholder-derived-id-logic-that-can-diverge-from-what-the-requester-sees",
+      "title": "Frontend: Update AdminDashboard pending approvals display to use the backend-provided request name and 4-character identifier for each pending approval (and remove any placeholder/derived ID logic that can diverge from what the requester sees).",
+      "reqIds": [
+        "REQ-19"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-access-pending-screen-to-stop-generating-storing-a-client-side-random-4-character-id-and-instead-render-the-pending-state-using-the-backend-returned-requester-name-and-backend-generated-4-character-identifier-from-the-request-approval-call",
+      "title": "Update the Access Pending screen to stop generating/storing a client-side random 4-character ID and instead render the pending state using the backend-returned requester name and backend-generated 4-character identifier from the request-approval call.",
+      "reqIds": [
+        "REQ-22"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-admin-dashboard-pending-approvals-list-to-display-the-backend-provided-requester-name-and-backend-provided-4-character-identifier-for-each-pending-approval-and-remove-any-principal-derived-identifier-generation-and-the-name-not-available-placeholder-warning-for-newly-submitted-requests",
+      "title": "Update the Admin Dashboard pending approvals list to display the backend-provided requester name and backend-provided 4-character identifier for each pending approval, and remove any principal-derived identifier generation and the \"Name not available\" placeholder/warning for newly submitted requests.",
+      "reqIds": [
+        "REQ-23"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-frontend-access-request-flow-so-that-no-ui-path-calls-the-deprecated-backend-method-requestapproval-which-traps-with-deprecated-please-use-requestapprovalwithname-instead-and-instead-all-request-access-actions-call-requestapprovalwithname-name-with-a-user-provided-name",
+      "title": "Update the frontend access-request flow so that no UI path calls the deprecated backend method `requestApproval()` (which traps with \"Deprecated: Please use requestApprovalWithName instead\"), and instead all request-access actions call `requestApprovalWithName(name)` with a user-provided name.",
+      "reqIds": [
+        "REQ-24"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -177,6 +229,38 @@
       "summary": "Generate a short identifier for each access request that is exactly 4 characters long, and make the identifier visible to both the requesting user (on their pending screen) and admins (in the pending approvals list).",
       "reqIds": [
         "REQ-10"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-14",
+      "summary": "Backend: Update the approval-request API so that unapproved users can submit their name as part of requesting approval, without tripping backend authorization checks (current backend rejects saving a profile unless already approved/admin).",
+      "reqIds": [
+        "REQ-16"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-15",
+      "summary": "Backend: Ensure the pending approval record contains (and returns) a generated short identifier that is exactly 4 characters long and is stable for that pending request (so the user and admins see the same identifier).",
+      "reqIds": [
+        "REQ-17"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-16",
+      "summary": "Update the backend to persist pending access-request metadata (requester name + generated 4-character identifier) in a backend-owned record so the identifier is stable and the same data can be displayed to both the requester and admins.",
+      "reqIds": [
+        "REQ-20"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-17",
+      "summary": "Change the backend access-request API so that an unapproved logged-in user can submit their name as part of requesting approval in one operation, and the backend returns the canonical pending-request data (name + 4-character identifier) to the caller.",
+      "reqIds": [
+        "REQ-21"
       ],
       "status": "pending"
     }

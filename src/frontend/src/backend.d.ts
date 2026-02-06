@@ -36,6 +36,10 @@ export interface backendInterface {
     isCallerApproved(): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
     requestApproval(): Promise<void>;
+    requestApprovalWithName(name: string): Promise<{
+        name: string;
+        fourCharId: string;
+    }>;
     saveCallerUserProfile(profile: {
         name: string;
     }): Promise<void>;

@@ -32,6 +32,10 @@ export interface _SERVICE {
   'isCallerApproved' : ActorMethod<[], boolean>,
   'listApprovals' : ActorMethod<[], Array<UserApprovalInfo>>,
   'requestApproval' : ActorMethod<[], undefined>,
+  'requestApprovalWithName' : ActorMethod<
+    [string],
+    { 'name' : string, 'fourCharId' : string }
+  >,
   'saveCallerUserProfile' : ActorMethod<[{ 'name' : string }], undefined>,
   'setApproval' : ActorMethod<[Principal, ApprovalStatus], undefined>,
 }

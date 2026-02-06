@@ -1,16 +1,17 @@
 {
   "frontend/src/App.tsx": "Main app component that handles authentication flow with improved loading state logic using isFetched to prevent flashing, showing login screen for unauthenticated users, access pending screen for non-approved users, and the main app router for approved users.",
   "frontend/src/hooks/useAccessStatus.ts": "Custom hook that queries the backend for the current user's approval status and admin role with refetch on mount and window focus enabled for reliable state updates after mutations.",
-  "frontend/src/hooks/useQueries.ts": "React Query hooks for all backend operations including user profiles (with getUserProfile for fetching other users' profiles), approval requests, admin operations (list/set approvals, assign roles), user role queries, and announcement content management with proper query invalidation and correct import of UserRole as a value.",
+  "frontend/src/hooks/useQueries.ts": "React Query hooks for backend operations with updated useRequestApprovalWithName mutation that accepts a name parameter and returns backend-generated approval data including name and fourCharId.",
   "frontend/src/router/AppRouter.tsx": "TanStack Router configuration defining routes for home screen, three module pages, and admin dashboard with appropriate guards.",
   "frontend/src/components/AdminGuard.tsx": "Route guard component that redirects non-admin users away from admin-only pages and shows loading state during access verification.",
   "frontend/src/pages/LoginScreen.tsx": "Android-style login screen with wallpaper background and Internet Identity sign-in button.",
-  "frontend/src/pages/AccessPendingScreen.tsx": "Screen for authenticated but non-approved users that collects user name before requesting approval, generates and displays a 4-character identifier, and shows pending state with name and ID after submission.",
+  "frontend/src/pages/AccessPendingScreen.tsx": "Access request screen that validates name input, submits to backend via requestApprovalWithName with explicit validation feedback, maps deprecated API errors to user-friendly messages, and displays backend-returned name and 4-character identifier with localStorage persistence scoped to current principal.",
   "frontend/src/pages/HomeScreen.tsx": "Android-style launcher home screen with wallpaper background, app icon grid for three modules, announcement display, user profile setup modal, and status bar with admin/logout controls.",
   "frontend/src/pages/modules/FrieslandFungies.tsx": "Placeholder module page for Friesland Fungies with header navigation and content area.",
   "frontend/src/pages/modules/LandVanOns.tsx": "Placeholder module page for Land van Ons with header navigation and content area.",
   "frontend/src/pages/modules/Pottle.tsx": "Placeholder module page for Pottle with header navigation and content area.",
-  "frontend/src/pages/AdminDashboard.tsx": "Admin dashboard with three sections (announcement editor, pending approvals with name/ID display, approved users with role distinction and remove functionality) using proper Principal objects and sub-components for user rows with profile lookups.",
+  "frontend/src/pages/AdminDashboard.tsx": "Admin dashboard displaying pending approvals with principal information and a note that backend doesn't expose requester names/IDs yet, announcement editor, and approved users management with role assignment.",
   "frontend/src/index.css": "Global styles with emerald/teal Android-inspired OKLCH color system for light and dark modes, avoiding blue/purple palette.",
-  "frontend/tailwind.config.js": "Tailwind configuration with custom color tokens, border radius, and animation settings matching the Android-inspired design system."
+  "frontend/tailwind.config.js": "Tailwind configuration with custom color tokens, border radius, and animation settings matching the Android-inspired design system.",
+  "frontend/src/backend.d.ts": "TypeScript interface definitions for backend canister matching the actual backend implementation with UserApprovalInfo containing only principal and status fields."
 }

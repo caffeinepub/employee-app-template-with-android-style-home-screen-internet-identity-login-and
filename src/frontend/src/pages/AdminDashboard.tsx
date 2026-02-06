@@ -1,53 +1,45 @@
 import { useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, CheckCircle, XCircle, Shield, User, Trash2 } from 'lucide-react';
-import { useListApprovals, useSetApproval, useAssignUserRole, useUpdateAnnouncement, useGetAnnouncement, useGetUserProfile } from '../hooks/useQueries';
+import { ArrowLeft, CheckCircle, XCircle, Shield, User, Trash2, AlertCircle } from 'lucide-react';
+import { useListApprovals, useSetApproval, useAssignUserRole, useUpdateAnnouncement, useGetAnnouncement } from '../hooks/useQueries';
 import { ApprovalStatus, UserRole } from '../backend';
 import { useState } from 'react';
 import { Principal } from '@dfinity/principal';
+import type { UserApprovalInfo } from '../backend';
 
-// Component to display user info with profile lookup
+// Component to display pending approval - backend doesn't provide name/ID yet
 function UserApprovalRow({ 
   approval, 
   onApprove, 
   onReject, 
   isPending 
 }: { 
-  approval: any; 
+  approval: UserApprovalInfo; 
   onApprove: () => void; 
   onReject: () => void; 
   isPending: boolean;
 }) {
-  const { data: profile } = useGetUserProfile(approval.principal);
-  
-  // Generate a consistent 4-char ID from principal (simple hash)
-  const generateIdFromPrincipal = (principal: Principal) => {
-    const text = principal.toText();
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-      hash = ((hash << 5) - hash) + text.charCodeAt(i);
-      hash = hash & hash;
-    }
-    let result = '';
-    for (let i = 0; i < 4; i++) {
-      result += chars[Math.abs(hash >> (i * 8)) % chars.length];
-    }
-    return result;
-  };
-
-  const displayName = profile?.name || 'Unknown User';
-  const displayId = generateIdFromPrincipal(approval.principal);
+  const principalText = approval.principal.toText();
+  const shortPrincipal = `${principalText.slice(0, 8)}...${principalText.slice(-6)}`;
 
   return (
-    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
-      <div className="flex items-center gap-4">
-        <User className="w-5 h-5 text-slate-400" />
-        <div>
-          <p className="font-semibold text-slate-900">{displayName}</p>
-          <p className="text-sm font-mono text-slate-500">ID: {displayId}</p>
+    <div className="p-4 bg-slate-50 rounded-xl">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start gap-3 flex-1">
+          <User className="w-5 h-5 text-slate-400 mt-1" />
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <p className="text-sm font-mono text-slate-500">{shortPrincipal}</p>
+            </div>
+            <div className="flex items-start gap-2 p-2 bg-amber-50 rounded-lg border border-amber-200">
+              <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-800">
+                Backend doesn't expose requester name and ID yet. Ask the user for their 4-character ID to match their request.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 ml-8">
         <button
           onClick={onApprove}
           disabled={isPending}
@@ -76,18 +68,16 @@ function ApprovedUserRow({
   onRemove,
   isPending 
 }: { 
-  approval: any; 
+  approval: UserApprovalInfo; 
   onToggleAdmin: (currentRole: UserRole) => void;
   onRemove: () => void;
   isPending: boolean;
 }) {
-  const { data: profile } = useGetUserProfile(approval.principal);
-  
-  // Note: Backend doesn't expose getUserRole yet, so we can't determine actual role
-  // For now, we'll use a placeholder approach
+  // Note: Backend doesn't expose getUserRole or store names with approvals
   const [isAdmin, setIsAdmin] = useState(false);
 
-  const displayName = profile?.name || 'Unknown User';
+  const principalText = approval.principal.toText();
+  const shortPrincipal = `${principalText.slice(0, 12)}...${principalText.slice(-8)}`;
   const roleLabel = isAdmin ? 'Admin' : 'Approved User';
 
   const handleToggle = () => {
@@ -101,7 +91,7 @@ function ApprovedUserRow({
       <div className="flex items-center gap-4">
         <User className="w-5 h-5 text-emerald-600" />
         <div>
-          <p className="font-semibold text-slate-900">{displayName}</p>
+          <p className="font-mono text-sm text-slate-900">{shortPrincipal}</p>
           <p className="text-sm text-slate-500">{roleLabel}</p>
         </div>
       </div>
@@ -165,8 +155,6 @@ export default function AdminDashboard() {
   };
 
   const handleRemoveUser = async (principal: Principal) => {
-    // Note: Backend doesn't have removeUser yet
-    // For now, we'll reject them which removes approval
     await setApproval.mutateAsync({
       user: principal,
       status: ApprovalStatus.rejected,

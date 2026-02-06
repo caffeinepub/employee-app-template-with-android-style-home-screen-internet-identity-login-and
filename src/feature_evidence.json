@@ -2,32 +2,9 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-admin-dashboard-pending-approval-approve-and-reject-actions-so-that-clicking-the-buttons-actually-updates-the-corresponding-user-s-approval-status-in-the-backend-and-the-ui-refreshes-to-reflect-the-change",
-      "featureTitle": "Fix the Admin Dashboard pending-approval Approve and Reject actions so that clicking the buttons actually updates the corresponding user’s approval status in the backend and the UI refreshes to reflect the change.",
+      "featureId": "feature-update-the-frontend-access-request-flow-so-that-no-ui-path-calls-the-deprecated-backend-method-requestapproval-which-traps-with-deprecated-please-use-requestapprovalwithname-instead-and-instead-all-request-access-actions-call-requestapprovalwithname-name-with-a-user-provided-name",
+      "featureTitle": "Update the frontend access-request flow so that no UI path calls the deprecated backend method `requestApproval()` (which traps with \"Deprecated: Please use requestApprovalWithName instead\"), and instead all request-access actions call `requestApprovalWithName(name)` with a user-provided name.",
       "files": [
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/pages/AdminDashboard.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "user-approval@3.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-8"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-update-the-access-request-flow-so-that-when-a-logged-in-but-unapproved-user-clicks-request-approval-they-must-enter-their-name-and-after-submitting-they-see-a-pending-state-that-displays-both-their-entered-name-and-a-generated-short-identifier",
-      "featureTitle": "Update the access request flow so that when a logged-in but unapproved user clicks “Request Approval”, they must enter their name, and after submitting they see a pending state that displays both their entered name and a generated short identifier.",
-      "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/hooks/useQueries.ts",
         "frontend/src/pages/AccessPendingScreen.tsx"
       ],
       "components": [
@@ -40,93 +17,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-9"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-update-the-admin-dashboard-pending-approvals-list-to-display-the-requesting-user-s-name-and-4-character-identifier-instead-of-showing-only-a-partial-principal-string",
-      "featureTitle": "Update the Admin Dashboard pending approvals list to display the requesting user’s name and 4-character identifier (instead of showing only a partial principal string).",
-      "files": [
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/pages/AdminDashboard.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "user-approval@3.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-11"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-ensure-there-is-a-clear-distinction-between-normal-approved-users-and-admins-in-both-backend-role-logic-and-the-admin-dashboard-ui-admins-must-be-able-to-grant-and-revoke-admin-rights-for-approved-users-with-the-current-role-status-clearly-shown",
-      "featureTitle": "Ensure there is a clear distinction between normal approved users and admins in both backend role logic and the Admin Dashboard UI; admins must be able to grant and revoke admin rights for approved users with the current role/status clearly shown.",
-      "files": [
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/pages/AdminDashboard.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "user-approval@3.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-12"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-add-an-admin-only-ability-to-remove-an-approved-user-such-that-removing-the-user-fully-deletes-their-access-rights-including-revoking-admin-rights-if-present-and-prevents-them-from-accessing-the-app-until-they-request-approval-again",
-      "featureTitle": "Add an admin-only ability to remove an approved user such that removing the user fully deletes their access rights (including revoking admin rights if present) and prevents them from accessing the app until they request approval again.",
-      "files": [
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/pages/AdminDashboard.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "user-approval@3.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-13"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-update-frontend-query-invalidation-refetch-behavior-so-that-changes-to-approvals-roles-and-user-removal-reliably-update-all-relevant-ui-states-admin-dashboard-lists-and-the-logged-in-user-s-access-gating-state-without-a-full-reload",
-      "featureTitle": "Update frontend query invalidation/refetch behavior so that changes to approvals, roles, and user removal reliably update all relevant UI states (Admin Dashboard lists and the logged-in user’s access gating state) without a full reload.",
-      "files": [
-        "frontend/src/hooks/useAccessStatus.ts",
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/pages/AccessPendingScreen.tsx",
-        "frontend/src/pages/AdminDashboard.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "user-approval@3.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-14"
+        "REQ-24"
       ],
       "confidence": "high"
     }

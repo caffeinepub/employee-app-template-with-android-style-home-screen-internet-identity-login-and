@@ -1,85 +1,119 @@
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useRequestApproval, useGetCallerUserProfile, useSaveCallerUserProfile } from '../hooks/useQueries';
-import { Clock, LogOut } from 'lucide-react';
+import { useRequestApprovalWithName } from '../hooks/useQueries';
+import { Clock, LogOut, AlertCircle } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 
+// Client-side pending request storage
+interface PendingRequest {
+  name: string;
+  fourCharId: string;
+  principal: string;
+  timestamp: number;
+}
+
+const STORAGE_KEY = 'pending_access_request';
+
 export default function AccessPendingScreen() {
-  const { clear } = useInternetIdentity();
-  const requestApproval = useRequestApproval();
+  const { clear, identity } = useInternetIdentity();
+  const requestApprovalWithName = useRequestApprovalWithName();
   const queryClient = useQueryClient();
-  const { data: userProfile, isLoading: profileLoading, isFetched } = useGetCallerUserProfile();
-  const saveProfile = useSaveCallerUserProfile();
   
   const [name, setName] = useState('');
-  const [hasRequestedApproval, setHasRequestedApproval] = useState(false);
-  const [generatedId, setGeneratedId] = useState('');
+  const [pendingRequest, setPendingRequest] = useState<PendingRequest | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Generate a simple 4-character ID (client-side for now)
-  const generateId = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < 4; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  };
-
+  // Load pending request from localStorage on mount
   useEffect(() => {
-    // If user already has a profile, they've likely already requested approval
-    if (userProfile && userProfile.name) {
-      setHasRequestedApproval(true);
-      setName(userProfile.name);
-      // Generate consistent ID based on name (simple hash)
-      const id = generateId();
-      setGeneratedId(id);
+    if (!identity) return;
+    
+    const principal = identity.getPrincipal().toString();
+    const stored = localStorage.getItem(STORAGE_KEY);
+    
+    if (stored) {
+      try {
+        const parsed: PendingRequest = JSON.parse(stored);
+        // Only restore if it's for the current principal
+        if (parsed.principal === principal) {
+          setPendingRequest(parsed);
+          setName(parsed.name);
+        } else {
+          // Clear stale data for different principal
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      } catch (e) {
+        console.error('Failed to parse stored pending request:', e);
+        localStorage.removeItem(STORAGE_KEY);
+      }
     }
-  }, [userProfile]);
+  }, [identity]);
 
   const handleLogout = async () => {
+    // Clear pending request data on logout
+    localStorage.removeItem(STORAGE_KEY);
     await clear();
     queryClient.clear();
   };
 
   const handleRequestApproval = async () => {
-    if (!name.trim()) return;
+    // Validate name is not empty
+    if (!name.trim()) {
+      setError('Please enter your name to request access.');
+      return;
+    }
+    
+    if (!identity) {
+      setError('Authentication required. Please sign in again.');
+      return;
+    }
+    
+    setError(null);
 
     try {
-      // First save the profile with the name
-      await saveProfile.mutateAsync({ name: name.trim() });
+      // Submit approval request to backend with name
+      const response = await requestApprovalWithName.mutateAsync(name.trim());
       
-      // Generate ID
-      const id = generateId();
-      setGeneratedId(id);
+      // Use backend-returned data
+      const principal = identity.getPrincipal().toString();
+      const request: PendingRequest = {
+        name: response.name,
+        fourCharId: response.fourCharId,
+        principal,
+        timestamp: Date.now(),
+      };
       
-      // Then request approval
-      await requestApproval.mutateAsync();
+      // Store in localStorage for persistence
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(request));
+      setPendingRequest(request);
       
-      setHasRequestedApproval(true);
-    } catch (error) {
-      console.error('Error requesting approval:', error);
+    } catch (err: any) {
+      console.error('Error requesting approval:', err);
+      
+      // Show user-friendly error message
+      let errorMessage = 'Failed to submit access request. Please try again.';
+      
+      if (err?.message) {
+        const message = err.message.toLowerCase();
+        
+        // Map backend errors to user-friendly messages
+        if (message.includes('already approved')) {
+          errorMessage = 'You are already approved. Please refresh the page.';
+        } else if (message.includes('deprecated') || message.includes('requestapprovalwithname')) {
+          // Hide deprecated API message from users
+          errorMessage = 'Request failed due to a system error. Please try again or contact support.';
+        } else if (message.includes('trap')) {
+          errorMessage = 'Request failed. Please try again or contact support.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
     }
   };
 
-  const isSubmitting = saveProfile.isPending || requestApproval.isPending;
-  const showNameInput = !hasRequestedApproval && isFetched;
-  const showPendingState = hasRequestedApproval;
-
-  if (profileLoading) {
-    return (
-      <div 
-        className="min-h-screen flex items-center justify-center relative overflow-hidden"
-        style={{
-          backgroundImage: 'url(/assets/generated/employee-wallpaper.dim_1920x1080.png)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-        <div className="relative z-10 text-white text-lg">Loading...</div>
-      </div>
-    );
-  }
+  const isSubmitting = requestApprovalWithName.isPending;
+  const showPendingState = !!pendingRequest;
 
   return (
     <div 
@@ -99,7 +133,7 @@ export default function AccessPendingScreen() {
           </div>
         </div>
         
-        {showNameInput && (
+        {!showPendingState && (
           <>
             <h1 className="text-3xl font-bold text-white mb-3 tracking-tight">
               Request Access
@@ -108,21 +142,36 @@ export default function AccessPendingScreen() {
               Please enter your name to request access to the application.
             </p>
             
+            {error && (
+              <div className="mb-6 p-4 bg-red-500/90 backdrop-blur-sm rounded-xl flex items-start gap-3 text-left">
+                <AlertCircle className="w-5 h-5 text-white flex-shrink-0 mt-0.5" />
+                <p className="text-white text-sm">{error}</p>
+              </div>
+            )}
+            
             <div className="space-y-4 mb-6">
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setError(null); // Clear error when user types
+                }}
                 placeholder="Enter your name"
                 className="w-full px-6 py-3 rounded-full bg-white/95 backdrop-blur-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-lg"
                 disabled={isSubmitting}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleRequestApproval();
+                  }
+                }}
               />
             </div>
             
             <div className="space-y-3">
               <button
                 onClick={handleRequestApproval}
-                disabled={isSubmitting || !name.trim()}
+                disabled={isSubmitting}
                 className="w-full px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-full shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? 'Submitting...' : 'Request Approval'}
@@ -140,7 +189,7 @@ export default function AccessPendingScreen() {
           </>
         )}
 
-        {showPendingState && (
+        {showPendingState && pendingRequest && (
           <>
             <h1 className="text-3xl font-bold text-white mb-3 tracking-tight">
               Access Pending
@@ -153,11 +202,11 @@ export default function AccessPendingScreen() {
               <div className="space-y-3">
                 <div>
                   <p className="text-white/70 text-sm mb-1">Your Name</p>
-                  <p className="text-white font-semibold text-lg">{name}</p>
+                  <p className="text-white font-semibold text-lg">{pendingRequest.name}</p>
                 </div>
                 <div>
                   <p className="text-white/70 text-sm mb-1">Your ID</p>
-                  <p className="text-white font-mono font-bold text-2xl tracking-wider">{generatedId}</p>
+                  <p className="text-white font-mono font-bold text-2xl tracking-wider">{pendingRequest.fourCharId}</p>
                 </div>
               </div>
             </div>

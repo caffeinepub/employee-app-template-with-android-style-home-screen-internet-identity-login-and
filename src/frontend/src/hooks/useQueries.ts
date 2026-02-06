@@ -59,14 +59,14 @@ export function useSaveCallerUserProfile() {
 }
 
 // Approval Queries
-export function useRequestApproval() {
+export function useRequestApprovalWithName() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (name: string) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.requestApproval();
+      return actor.requestApprovalWithName(name);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accessStatus'] });
