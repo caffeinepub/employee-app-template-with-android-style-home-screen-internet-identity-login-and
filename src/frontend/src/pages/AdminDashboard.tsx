@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, CheckCircle, XCircle, Shield, User, Trash2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Shield, User, Trash2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useListApprovals, useSetApproval, useAssignUserRole, useUpdateAnnouncement, useGetAnnouncement } from '../hooks/useQueries';
 import { ApprovalStatus, UserRole } from '../backend';
 import { useState } from 'react';
@@ -123,7 +123,7 @@ function ApprovedUserRow({
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const { data: approvals, isLoading } = useListApprovals();
+  const { data: approvals, isLoading, refetch } = useListApprovals();
   const setApproval = useSetApproval();
   const assignRole = useAssignUserRole();
   const { data: announcement } = useGetAnnouncement();
@@ -131,6 +131,7 @@ export default function AdminDashboard() {
   
   const [announcementText, setAnnouncementText] = useState(announcement || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleApprove = async (principal: Principal) => {
     await setApproval.mutateAsync({
@@ -171,6 +172,15 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const pendingApprovals = approvals?.filter(a => a.status === ApprovalStatus.pending) || [];
   const approvedUsers = approvals?.filter(a => a.status === ApprovalStatus.approved) || [];
 
@@ -188,17 +198,27 @@ export default function AdminDashboard() {
       <div className="relative z-10 min-h-screen flex flex-col">
         {/* Header */}
         <div className="bg-white/90 backdrop-blur-md shadow-lg">
-          <div className="max-w-6xl mx-auto px-6 py-4 flex items-center gap-4">
-            <button
-              onClick={() => navigate({ to: '/' })}
-              className="w-10 h-10 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div className="flex items-center gap-3">
-              <Shield className="w-8 h-8 text-emerald-600" />
-              <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
+          <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate({ to: '/' })}
+                className="w-10 h-10 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div className="flex items-center gap-3">
+                <Shield className="w-8 h-8 text-emerald-600" />
+                <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
+              </div>
             </div>
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
           </div>
         </div>
 

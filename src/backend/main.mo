@@ -7,9 +7,10 @@ import Runtime "mo:core/Runtime";
 import Nat "mo:core/Nat";
 import Text "mo:core/Text";
 import Iter "mo:core/Iter";
+import Migration "migration";
 
-
-
+// Specify the data migration function in with-clause
+(with migration = Migration.run)
 actor {
   // Persistent user data.
   let userProfiles = Map.empty<Principal, { name : Text }>();
@@ -23,25 +24,25 @@ actor {
   // Persistent counter for generating identifiers (survives upgrades)
   var requestCounter = 0;
 
-  // Initialize the authorization system state.
+  // Persistent access control state and MixinAuthorization integration.
   let accessControlState = AccessControl.initState();
-
-  // Persistent MixinAuthorization integration.
   include MixinAuthorization(accessControlState);
 
-  // Reinitialize user approval component to avoid actor state dependency.
+  // Initialize user approval component with persistent access control state.
   let approvalState = UserApproval.initState(accessControlState);
 
   public query ({ caller }) func isCallerApproved() : async Bool {
     AccessControl.hasPermission(accessControlState, caller, #admin) or UserApproval.isApproved(approvalState, caller);
   };
 
-  // New function to handle approval requests with name and generate persistent identifier.
+  // Completes reset and generates new pending request for previously deleted users
   public shared ({ caller }) func requestApprovalWithName(name : Text) : async { name : Text; fourCharId : Text } {
-    if (UserApproval.isApproved(approvalState, caller) or AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("You are already approved");
+    // Admins cannot request approval for themselves
+    if (AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Admins do not need approval");
     };
 
+    // Generate new identifier
     let fourCharId = generateFourCharId(requestCounter);
 
     let request = {
@@ -49,31 +50,40 @@ actor {
       fourCharId;
     };
 
+    // Store new access request
     accessRequests.add(caller, request);
     requestCounter += 1;
 
+    // Create new pending approval request
     UserApproval.requestApproval(approvalState, caller);
+
     request;
   };
 
-  // Deprecated legacy endpoint now expected by frontend code.
+  // Legacy endpoint maintained for compatibility.
   public shared ({ caller }) func requestApproval() : async () {
-    Runtime.trap("Deprecated: Please use requestApprovalWithName instead");
+    Runtime.trap("Please use 'requestApprovalWithName' to provide your name and receive your identifier.");
   };
 
-  public shared ({ caller }) func setApproval(user : Principal, status : UserApproval.ApprovalStatus) : async () {
-    // Only admins can approve/reject.
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Only admins can set approval status");
+  // Deprecated but necessary for backward compatibility
+  // AUTHORIZATION: Prevent modification of name after approval
+  public shared ({ caller }) func saveCallerUserProfile(profile : { name : Text }) : async () {
+    if (not (UserApproval.isApproved(approvalState, caller) or AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Only approved users can save profile");
     };
 
-    // Remove access request if approved.
-    if (status == #approved) {
-      accessRequests.remove(user);
+    // Prevent changing the name - it must remain immutable
+    switch (userProfiles.get(caller)) {
+      case (?_) {
+        // Profile already exists - name cannot be changed
+        Runtime.trap("Unauthorized: Profile name cannot be changed after approval");
+      };
+      case (null) {
+        // This should not happen in normal flow, but allow profile creation
+        // only if there's no existing profile
+        userProfiles.add(caller, profile);
+      };
     };
-
-    // Persist pending approval.
-    UserApproval.setApproval(approvalState, user, status);
   };
 
   // Returns the complete approval list (deprecated/compat).
@@ -82,6 +92,35 @@ actor {
       Runtime.trap("Only admins can access the approval list");
     };
     UserApproval.listApprovals(approvalState);
+  };
+
+  public shared ({ caller }) func setApproval(user : Principal, status : UserApproval.ApprovalStatus) : async () {
+    // Only admins can approve/reject.
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
+      Runtime.trap("Only admins can set approval status");
+    };
+
+    // When approving, create the user profile with the name from access request
+    if (status == #approved) {
+      switch (accessRequests.get(user)) {
+        case (?request) {
+          // Create the permanent user profile with the name from the access request
+          userProfiles.add(user, { name = request.name });
+          // Remove access request after creating profile
+          accessRequests.remove(user);
+        };
+        case (null) {
+          // No access request found - cannot approve without a name
+          Runtime.trap("Cannot approve: No access request found for user");
+        };
+      };
+    } else if (status == #rejected) {
+      // When rejecting, clean up the access request
+      accessRequests.remove(user);
+    };
+
+    // Persist approval status
+    UserApproval.setApproval(approvalState, user, status);
   };
 
   public query ({ caller }) func getCallerUserProfile() : async ?{ name : Text } {
@@ -93,13 +132,6 @@ actor {
       Runtime.trap("Unauthorized: Can only view your own profile");
     };
     userProfiles.get(user);
-  };
-
-  public shared ({ caller }) func saveCallerUserProfile(profile : { name : Text }) : async () {
-    if (not (UserApproval.isApproved(approvalState, caller) or AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Only approved users can save profile");
-    };
-    userProfiles.add(caller, profile);
   };
 
   public shared ({ caller }) func addContent(id : Text, content : Text) : async () {

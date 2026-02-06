@@ -3,10 +3,19 @@ import { useAccessStatus } from './hooks/useAccessStatus';
 import LoginScreen from './pages/LoginScreen';
 import AccessPendingScreen from './pages/AccessPendingScreen';
 import AppRouter from './router/AppRouter';
+import { clearPendingRequest } from './utils/pendingAccessRequest';
+import { useEffect } from 'react';
 
 export default function App() {
   const { identity, isInitializing } = useInternetIdentity();
   const { isApproved, isLoading: accessLoading, isFetched } = useAccessStatus();
+
+  // Clear pending access request when user becomes approved
+  useEffect(() => {
+    if (identity && isApproved && isFetched) {
+      clearPendingRequest();
+    }
+  }, [identity, isApproved, isFetched]);
 
   // Show loading state during initialization
   if (isInitializing || (identity && !isFetched)) {

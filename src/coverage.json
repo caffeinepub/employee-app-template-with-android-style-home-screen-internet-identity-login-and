@@ -1,35 +1,34 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T13:08:15.304Z",
+  "generatedAt": "2026-02-06T14:00:42.086Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
     "total": 1,
-    "implemented": 1,
+    "implemented": 0,
     "items": [
       {
-        "id": "REQ-24",
-        "summary": "Update the frontend access-request flow so that no UI path calls the deprecated backend method `requestApproval()` (which traps with \"Deprecated: Please use requestApprovalWithName instead\"), and instead all request-access actions call `requestApprovalWithName(name)` with a user-provided name.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/AccessPendingScreen.tsx",
-          "frontend/src/hooks/useQueries.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/AccessPendingScreen.tsx"
-        ]
+        "id": "REQ-26",
+        "summary": "Backend: Ensure that when a principal that was previously removed/deleted requests approval again, the backend treats them as a completely new requester by clearing all backend records for that principal that could prevent creation of a fresh pending approval request (including any leftover pending/approved/role state and any stored access-request/profile data), and then creates a new pending request that appears in the Admin Dashboard pending approvals list.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
-    "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/pages/AccessPendingScreen.tsx",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

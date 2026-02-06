@@ -69,8 +69,11 @@ export function useRequestApprovalWithName() {
       return actor.requestApprovalWithName(name);
     },
     onSuccess: () => {
+      // Invalidate and refetch immediately
       queryClient.invalidateQueries({ queryKey: ['accessStatus'] });
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
+      // Force refetch to ensure admin sees the new request
+      queryClient.refetchQueries({ queryKey: ['approvals'] });
     },
   });
 }
@@ -86,6 +89,9 @@ export function useListApprovals() {
       return actor.listApprovals();
     },
     enabled: !!actor && !actorFetching,
+    refetchInterval: 5000, // Poll every 5 seconds for new requests
+    refetchOnMount: 'always', // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
 }
 
@@ -102,6 +108,8 @@ export function useSetApproval() {
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
       queryClient.invalidateQueries({ queryKey: ['accessStatus'] });
       queryClient.invalidateQueries({ queryKey: ['userRoles'] });
+      // Force refetch to ensure UI updates immediately
+      queryClient.refetchQueries({ queryKey: ['approvals'] });
     },
   });
 }

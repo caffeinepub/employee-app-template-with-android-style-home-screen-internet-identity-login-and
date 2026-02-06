@@ -1,25 +1,4 @@
 {
   "kind": "feature_evidence_report",
-  "features": [
-    {
-      "featureId": "feature-update-the-frontend-access-request-flow-so-that-no-ui-path-calls-the-deprecated-backend-method-requestapproval-which-traps-with-deprecated-please-use-requestapprovalwithname-instead-and-instead-all-request-access-actions-call-requestapprovalwithname-name-with-a-user-provided-name",
-      "featureTitle": "Update the frontend access-request flow so that no UI path calls the deprecated backend method `requestApproval()` (which traps with \"Deprecated: Please use requestApprovalWithName instead\"), and instead all request-access actions call `requestApprovalWithName(name)` with a user-provided name.",
-      "files": [
-        "frontend/src/pages/AccessPendingScreen.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "user-approval@3.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-24"
-      ],
-      "confidence": "high"
-    }
-  ]
+  "features": []
 }

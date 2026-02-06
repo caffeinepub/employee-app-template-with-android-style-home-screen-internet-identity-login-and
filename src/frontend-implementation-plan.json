@@ -1,28 +1,6 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Frontend: migrate access-request flow to requestApprovalWithName and require user name",
-  "requirements": [
-    {
-      "id": "REQ-24",
-      "summary": "Ensure the access-request UI never calls deprecated requestApproval() and always submits requestApprovalWithName(name) with a required user-provided name, with clear validation messaging.",
-      "acceptanceCriteria": [
-        "When signed in with a new (unapproved) Internet Identity and clicking the app's Request Approval action, the frontend calls `actor.requestApprovalWithName(name)` and does not call `actor.requestApproval()` anywhere.",
-        "The error message \"Deprecated: Please use requestApprovalWithName instead\" no longer appears during the request-access flow.",
-        "If a name is required and missing, the UI prevents submission and clearly prompts for a name (English user-facing text)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/AccessPendingScreen.tsx",
-          "operation": "modify",
-          "description": "Harden the request-access submission flow to (1) require a non-empty name with explicit English validation feedback when missing (e.g., on button click or Enter), (2) ensure the only backend call made is via the existing requestApprovalWithName mutation, and (3) map any backend error containing the deprecated-message text to a user-friendly message so the deprecated text is never shown to users."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Audit and enforce the approval-request hook surface so no hook calls actor.requestApproval(); keep/confirm useRequestApprovalWithName(name) as the single approval-request mutation used by the UI, and remove/avoid exporting any deprecated requestApproval-based mutation if present now or introduced during refactors."
-        }
-      ]
-    }
-  ]
+  "title": "Frontend changes not required for backend re-request approval reset",
+  "requirements": []
 }

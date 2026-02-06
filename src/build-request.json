@@ -1,39 +1,36 @@
 {
   "kind": "build_request",
-  "title": "Fix access request flow by removing deprecated requestApproval calls and using requestApprovalWithName",
-  "priority": "high",
+  "title": "Treat previously deleted principals as fully new when re-requesting approval",
+  "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-24",
-      "text": "Update the frontend access-request flow so that no UI path calls the deprecated backend method `requestApproval()` (which traps with \"Deprecated: Please use requestApprovalWithName instead\"), and instead all request-access actions call `requestApprovalWithName(name)` with a user-provided name.",
-      "target": "frontend",
+      "id": "REQ-26",
+      "text": "Backend: Ensure that when a principal that was previously removed/deleted requests approval again, the backend treats them as a completely new requester by clearing all backend records for that principal that could prevent creation of a fresh pending approval request (including any leftover pending/approved/role state and any stored access-request/profile data), and then creates a new pending request that appears in the Admin Dashboard pending approvals list.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "recent-messages-4",
-          "recent-messages-5",
-          "recent-messages-6"
+          "msg-1"
         ],
         "quotes": [
-          "When trying to request access with a new Internet Identity, it gives error: \"Deprecated: Please use requestApprovalWithName instead\".",
-          "Yes, exactly."
+          "Only ensure that any previously deleted principal is treated as fully new (clearing all old records so a fresh pending request is created)."
         ]
       },
       "acceptanceCriteria": [
-        "When signed in with a new (unapproved) Internet Identity and clicking the app's Request Approval action, the frontend calls `actor.requestApprovalWithName(name)` and does not call `actor.requestApproval()` anywhere.",
-        "The error message \"Deprecated: Please use requestApprovalWithName instead\" no longer appears during the request-access flow.",
-        "If a name is required and missing, the UI prevents submission and clearly prompts for a name (English user-facing text)."
+        "Given a user principal that was previously removed via the existing admin 'remove user' capability, when that same principal logs in and submits a new access request, the call succeeds and returns a new pending request payload (name + 4-character identifier).",
+        "After the re-request, admins see a corresponding new entry in Pending Approvals for that principal (with the correct name and 4-character identifier).",
+        "The backend does not reuse or preserve any stale pending/approved/admin records for the deleted principal in a way that prevents the new pending request from being created and listed.",
+        "This change is limited to re-request behavior for previously deleted principals; it does not add a general-purpose background/orphan cleanup routine."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo (no additional backend services).",
-    "Do not edit files under frontend/src/components/ui or any paths listed as immutable in SYSTEM_CONTEXT.",
-    "Use English for any user-facing text."
+    "Backend must remain a single-actor Motoko canister with all actor entrypoints in backend/main.mo (library helpers are fine, but do not introduce additional backend services).",
+    "Use English for any user-facing text.",
+    "Do not implement broad automatic cleanup of orphan/stale records beyond what is necessary to ensure a previously deleted principal can create a fresh pending request."
   ],
   "nonGoals": [
-    "Changing the backend API behavior of requestApprovalWithName.",
-    "Adding new authentication methods beyond Internet Identity.",
-    "Redesigning the Admin Dashboard or approval logic beyond what is needed to eliminate deprecated requestApproval usage."
+    "Automatically cleaning up unrelated orphan/stale pending/approved records from older versions for principals that were not explicitly removed/deleted.",
+    "Changing the approval-request UI/UX or adding new admin screens beyond what is required for the backend fix."
   ],
   "imageRequirements": {
     "required": [],

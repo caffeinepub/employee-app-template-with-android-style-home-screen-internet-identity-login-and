@@ -1,18 +1,24 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 11,
+  "projectStateVersion": 17,
   "summary": "Employee app template styled like an Android OS home screen with icon-based navigation, supporting employee login and admin-controlled access/roles, and three starter modules with placeholder pages.",
   "architectural_notes": [
     "Generate a user-facing short identifier for access requests: 4-character code (alphanumeric) shown to both requester and admins.",
     "Deleting an approved user must revoke all permissions, including admin role, and remove their access entirely.",
     "Admin UI/logic must differentiate between approved users and admins (distinct role/status).",
-    "Frontend must call backend requestApprovalWithName (not deprecated requestApproval) from the Request Approval button/flow."
+    "Frontend must call backend requestApprovalWithName (not deprecated requestApproval) from the Request Approval button/flow.",
+    "After a user is approved, the app must always use the name originally provided during the access-request; do not prompt for name re-entry and do not allow changing it via later flows.",
+    "Deleted users must be able to re-request access using the exact same flow as a brand-new user: create a fresh pending-approval entry (new name + new 4-character ID) that is visible in Admin Pending Approvals.",
+    "Fix scope decision: When a previously deleted principal re-requests access, backend must clear any old records for that principal and treat them as fully new so a fresh pending-approval entry (new name + new 4-character ID) is created and visible to admins; do not implement broader orphan/stale record cleanup beyond this case."
   ],
   "known_issues": [
     "Approve/Decline actions for pending access requests are not working (buttons have no effect / do not update access state).",
     "Admin Dashboard pending approvals shows requester name as \"name not available\" for newly submitted requests.",
     "Admin Dashboard displays a different 4-character identifier than what the requester sees for the same pending access request.",
-    "Request access flow fails for new Internet Identity because frontend still calls deprecated requestApproval API; backend returns error: \"Deprecated: Please use requestApprovalWithName instead\"."
+    "Request access flow fails for new Internet Identity because frontend still calls deprecated requestApproval API; backend returns error: \"Deprecated: Please use requestApprovalWithName instead\".",
+    "Admin environment/dashboard still does not display the requester name and 4-character identifier for pending access requests.",
+    "After a user gains access, the app prompts them to fill in their name again instead of automatically using the name from their original access request.",
+    "For formerly deleted identities, the user can submit a new access request and sees a pending state, but the admin does not see a corresponding new entry in Pending Approvals (new identities work)."
   ],
   "isFixRequest": true,
   "existing_features": [
@@ -167,6 +173,14 @@
         "REQ-24"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-persist-and-enforce-the-initial-name-provided-during-requestapprovalwithname-name-as-the-caller-s-permanent-profile-name-so-that-after-an-admin-approves-the-user-the-app-never-prompts-the-user-to-enter-their-name-again-and-the-stored-name-cannot-be-changed-via-profile-saving-apis",
+      "title": "Persist and enforce the initial name provided during `requestApprovalWithName(name)` as the caller's permanent profile name so that, after an admin approves the user, the app never prompts the user to enter their name again and the stored name cannot be changed via profile-saving APIs.",
+      "reqIds": [
+        "REQ-25"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -261,6 +275,14 @@
       "summary": "Change the backend access-request API so that an unapproved logged-in user can submit their name as part of requesting approval in one operation, and the backend returns the canonical pending-request data (name + 4-character identifier) to the caller.",
       "reqIds": [
         "REQ-21"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-18",
+      "summary": "Backend: Ensure that when a principal that was previously removed/deleted requests approval again, the backend treats them as a completely new requester by clearing all backend records for that principal that could prevent creation of a fresh pending approval request (including any leftover pending/approved/role state and any stored access-request/profile data), and then creates a new pending request that appears in the Admin Dashboard pending approvals list.",
+      "reqIds": [
+        "REQ-26"
       ],
       "status": "pending"
     }

@@ -1,40 +1,46 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T13:08:15.301Z",
-  "summary": "The diff updates AccessPendingScreen to require a user-provided name and submit access requests via the requestApprovalWithName mutation, with English validation/error messaging. However, the provided diff evidence is insufficient to confirm that all UI paths across the entire frontend no longer call the deprecated requestApproval() method.",
+  "generatedAt": "2026-02-06T14:00:42.083Z",
+  "summary": "REQ-26 is not implemented as specified. The modified `requestApprovalWithName` creates a new access request and calls `UserApproval.requestApproval`, but there is no evidence it first clears any prior/deleted principal state (pending/approved/roles/profile/access-request) that could block re-requesting. The diff also introduces unrelated changes (migration scaffold, deprecating `requestApproval`, and making profile name immutable).",
   "missing_requirements": [
     {
-      "id": "REQ-24",
-      "requirement": "Ensure no UI path calls the deprecated backend method requestApproval() anywhere, and instead all request-access actions call requestApprovalWithName(name).",
-      "reason": "The diff shows AccessPendingScreen using requestApprovalWithName, but it does not provide evidence of a repo-wide removal/replacement of requestApproval() calls (e.g., in other screens/hooks). With only three modified files shown (and truncated content), it cannot be verified that requestApproval() is not still referenced elsewhere.",
+      "id": "REQ-26",
+      "requirement": "When a principal that was previously removed/deleted requests approval again, the backend must treat them as completely new by clearing all backend records for that principal that could prevent creation of a fresh pending approval request (pending/approved/role state and stored access-request/profile data), then create a new pending request that appears in the Admin Dashboard pending approvals list.",
+      "reason": "`requestApprovalWithName` only generates an ID, writes to `accessRequests`, increments `requestCounter`, and calls `UserApproval.requestApproval`. There is no evidence of any clearing/reset/removal of prior records for the caller (e.g., deleting old approval state, roles/admin flags, prior access request, or user profile) before creating the new request.",
       "evidence": [
-        "frontend/src/pages/AccessPendingScreen.tsx (truncated)",
-        "frontend/src/hooks/useQueries.ts (only described in frontend-file-summaries.txt; actual diff not shown)",
-        "frontend-file-summaries.txt"
+        "backend/main.mo"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Client-side persistence of pending access request data in localStorage, scoped by principal, including restoring state on mount and clearing on logout.",
-      "reason": "REQ-24 only asks to switch away from deprecated requestApproval() to requestApprovalWithName(name) with name validation; localStorage persistence and principal-scoped restoration are additional behaviors not requested.",
+      "description": "Added upgrade migration module and configured actor to use it (`with migration = Migration.run`).",
+      "reason": "BuildRequest does not request adding or changing upgrade/migration behavior; it only requests re-request behavior for previously deleted principals.",
       "evidence": [
-        "frontend/src/pages/AccessPendingScreen.tsx (truncated)"
+        "backend/migration.mo",
+        "backend/main.mo"
       ]
     },
     {
-      "description": "Custom mapping/rewriting of backend error messages (including hiding 'deprecated'/'trap' messages) to more generic user-facing errors.",
-      "reason": "REQ-24 requires the deprecated error message no longer appears during the request-access flow; the specific broader error-mapping logic implemented goes beyond the stated requirement and changes how errors are presented generally.",
+      "description": "Deprecated `requestApproval()` endpoint now traps with a message directing clients to `requestApprovalWithName`.",
+      "reason": "BuildRequest does not request API deprecation or behavior change for legacy endpoint; it focuses on handling re-requests after deletion.",
       "evidence": [
-        "frontend/src/pages/AccessPendingScreen.tsx (truncated)"
+        "backend/main.mo"
+      ]
+    },
+    {
+      "description": "Prevent changing user profile name after approval (traps if profile already exists) and restricts profile saving to approved/admin users.",
+      "reason": "BuildRequest does not mention profile immutability or altering profile-save authorization rules; it only requires clearing profile/access-request data when re-requesting after deletion.",
+      "evidence": [
+        "backend/main.mo"
       ]
     }
   ],
-  "confidence": 0.62,
+  "confidence": 0.72,
   "changed_files": [
-    "frontend-file-summaries.txt",
-    "frontend/src/pages/AccessPendingScreen.tsx",
+    "backend/main.mo",
+    "backend/migration.mo",
     "project_state.json"
   ]
 }

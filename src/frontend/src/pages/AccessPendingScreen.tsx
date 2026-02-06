@@ -3,16 +3,7 @@ import { useRequestApprovalWithName } from '../hooks/useQueries';
 import { Clock, LogOut, AlertCircle } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
-
-// Client-side pending request storage
-interface PendingRequest {
-  name: string;
-  fourCharId: string;
-  principal: string;
-  timestamp: number;
-}
-
-const STORAGE_KEY = 'pending_access_request';
+import { getPendingRequest, savePendingRequest, clearPendingRequest, type PendingRequest } from '../utils/pendingAccessRequest';
 
 export default function AccessPendingScreen() {
   const { clear, identity } = useInternetIdentity();
@@ -28,29 +19,17 @@ export default function AccessPendingScreen() {
     if (!identity) return;
     
     const principal = identity.getPrincipal().toString();
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = getPendingRequest(principal);
     
     if (stored) {
-      try {
-        const parsed: PendingRequest = JSON.parse(stored);
-        // Only restore if it's for the current principal
-        if (parsed.principal === principal) {
-          setPendingRequest(parsed);
-          setName(parsed.name);
-        } else {
-          // Clear stale data for different principal
-          localStorage.removeItem(STORAGE_KEY);
-        }
-      } catch (e) {
-        console.error('Failed to parse stored pending request:', e);
-        localStorage.removeItem(STORAGE_KEY);
-      }
+      setPendingRequest(stored);
+      setName(stored.name);
     }
   }, [identity]);
 
   const handleLogout = async () => {
     // Clear pending request data on logout
-    localStorage.removeItem(STORAGE_KEY);
+    clearPendingRequest();
     await clear();
     queryClient.clear();
   };
@@ -83,7 +62,7 @@ export default function AccessPendingScreen() {
       };
       
       // Store in localStorage for persistence
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(request));
+      savePendingRequest(request);
       setPendingRequest(request);
       
     } catch (err: any) {

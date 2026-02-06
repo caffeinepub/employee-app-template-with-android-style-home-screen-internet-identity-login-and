@@ -1,11 +1,10 @@
 # Specification
 
 ## Summary
-**Goal:** Fix the access request flow so the frontend no longer calls the deprecated `requestApproval()` method and instead uses `requestApprovalWithName(name)` with a user-provided name.
+**Goal:** Ensure a previously deleted/removed principal is treated as a fully new requester when they submit a new access request, so a fresh pending approval is created and visible to admins.
 
 **Planned changes:**
-- Find and remove/replace any frontend UI paths that call `actor.requestApproval()` during the request-access flow.
-- Update request-access actions to call `actor.requestApprovalWithName(name)` and pass a name collected from the user.
-- Add/adjust UI validation so submission is blocked when the name is missing, with a clear English prompt.
+- On access-request submission, detect principals that were previously removed/deleted and clear any stored backend records for that principal that could block creating a fresh pending approval (e.g., leftover pending/approved/role state and any stored access-request/profile data).
+- Create a new pending approval request for that principal after clearing stale records, and ensure it appears in the Admin Dashboard Pending Approvals list with the correct name and 4-character identifier.
 
-**User-visible outcome:** New/unapproved users can request approval without seeing the deprecated-method error, and the app prompts for a name (and requires it) before submitting the request.
+**User-visible outcome:** A user who was previously removed can log in and submit a new access request successfully, and admins will see a new corresponding pending approval entry for that principal.
